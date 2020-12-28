@@ -49,33 +49,33 @@ describe('game', () => {
                 randomIndexProvider.get = () => 0
                 randomWordPairProvider.get = () => ['a', 'b']
                 game.start()
-                expect(game.winner).toBe(null)
+                expect(game.winners).toEqual([])
             })
 
-            it('will end when the common word is guessed correctly - the imposter wins', () => {
+            it('will end when common word is guessed correctly - alice wins, gets 2 points (=size of group)', () => {
                 game.guessWord('a')
-                expect(game.winner).toBe(Game.IMPOSTER)
+                expect(game.winners).toEqual(['alice'])
                 expect(game.players[0].score).toBe(2)
                 expect(game.players[1].score).toBe(0)
                 expect(game.players[2].score).toBe(0)
             })
 
-            it('will continue when the common word is not guessed correctly', () => {
+            it('will continue when common word is not guessed correctly', () => {
                 game.guessWord('b')
-                expect(game.winner).toBe(null)
+                expect(game.winners).toEqual([])
             })
 
-            it('will end when the imposter gets voted out - group wins, get 1 point each', () => {
+            it('will end when alive gets voted out - bob and cindy win, get 1 point each', () => {
                 game.voteImposter('alice')
-                expect(game.winner).toBe(Game.GROUP)
+                expect(game.winners).toEqual(['bob', 'cindy'])
                 expect(game.players[0].score).toBe(0)
                 expect(game.players[1].score).toBe(1)
                 expect(game.players[2].score).toBe(1)
             })
 
-            it('will end when only imposter and one other left - imposter wins, gets 2 points (=size of group)', () => {
+            it('will end when only alice and one other left - alice wins, gets 2 points (=size of group)', () => {
                 game.voteImposter('bob')
-                expect(game.winner).toBe(Game.IMPOSTER)
+                expect(game.winners).toEqual(['alice'])
                 expect(game.players[0].score).toBe(2)
                 expect(game.players[1].score).toBe(0)
                 expect(game.players[2].score).toBe(0)

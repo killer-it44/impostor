@@ -1,37 +1,32 @@
-const words = require('./words/words')
+'use strict'
+
+const GameFactory = require('./game/game-factory')
 const express = require('express')
+const expressWs = require('express-ws')
 const app = express()
-require('express-ws')(app)
 
-let players = []
-let word = ''
-let imposterIndex = -1
-let imposterWord = ''
-let isStarted = false
-let winner = ''
-let foundImposter = ''
+expressWs(app)
 
-const randomIndex = function (max) {
-    return Math.floor(Math.random() * max)
-}
+const game = new GameFactory().create()
+const playerClientMap = {}
 
 app.use(express.static('web-client'))
 
 app.ws('/game', function (ws) {
 
     const update = function () {
-        players.forEach((player, index) => {
-            player.client.send(JSON.stringify({
-                isStarted: isStarted,
+        const players = game.players.map((player) => ({
+            name: player.name,
+            isEliminated: player.isEliminated,
+            score: player.score
+        }))
+        game.players.forEach((player, index) => {
+            playerClientMap[player.name].send(JSON.stringify({
+                isStarted: Boolean(game.commonWord),
                 isAdmin: (index === 0),
-                players: players.map((player) => ({
-                    name: player.name,
-                    isEliminated: player.isEliminated,
-                    score: player.score
-                })),
-                word: (index === imposterIndex) ? imposterWord : word,
-                winner: winner,
-                imposter: foundImposter,
+                players: players,
+                word: player.word,
+                winners: game.winners,
             }))
         })
     }
@@ -40,12 +35,11 @@ app.ws('/game', function (ws) {
     // a) schedule a timeout after which the player will get kicked
     // b) inform the others if it is the admin who 'disconnected', so they can claim the admin
     ws.on('close', function () {
-        players.forEach((player) => {
-            if (player.client === ws) {
-                console.log(`${player.name} dropped`)
-                player.client = { send: () => null }
-            }
-        })
+        const droppedPlayerName = Object.keys(playerClientMap).find((playerName) => playerClientMap[playerName] === ws)
+        if (droppedPlayerName) {
+            console.log(`${droppedPlayerName} dropped`)
+            playerClientMap[droppedPlayerName] = { send: () => null }
+        }
     })
 
     ws.on('message', function (msg) {
@@ -56,49 +50,23 @@ app.ws('/game', function (ws) {
         //      a) check that the connection of that player is dropped (not needed if the player would anyway get kicked after a timeout - see other TODO)
         //      b) have some mechanism to verify it is the same person, e.g. logon/secret mechanism or some client device identification (ip, agent, mac address, ...)
         if (msg.command === 'join') {
-            const reconnectingPlayer = players.find((player) => player.name === msg.playerName)
-            if (reconnectingPlayer) {
-                console.log(`${reconnectingPlayer.name} reconnected`)
-                reconnectingPlayer.client = ws
+            if (playerClientMap[msg.playerName]) {
+                console.log(`${msg.playerName} reconnected`)
+                playerClientMap[msg.playerName] = ws
             } else {
-                players.push({ name: msg.playerName, client: ws, isEliminated: false, score: 0 })
+                game.join(msg.playerName)
+                playerClientMap[msg.playerName] = ws
             }
             update()
         }
 
         if (msg.command === 'start') {
-            imposterIndex = Math.floor(Math.random() * players.length)
-            const selectedWordPool = words[Math.floor(Math.random() * words.length)]
-            const wordPool = [...selectedWordPool]
-            const rndIndex = randomIndex(wordPool.length)
-            word = wordPool.splice(rndIndex, rndIndex + 1)[0]
-            const rndIndex2 = randomIndex(wordPool.length)
-            imposterWord = wordPool.splice(rndIndex2, rndIndex2 + 1)[0]
-            players.forEach((player) => player.isEliminated = false)
-            isStarted = true
-            winner = ''
-            foundImposter = ''
+            game.start()
             update()
         }
 
         if (msg.command === 'vote') {
-            players.find((player) => (player.name === msg.playerName)).isEliminated = true
-            const numberOfPlayersLeft = players.filter((player) => !player.isEliminated).length
-            if (players[imposterIndex].isEliminated) {
-                isStarted = false
-                players.forEach((player) => {
-                    player.score += (player === players[imposterIndex]) ? 0 : 1
-                })
-                winner = 'group'
-                foundImposter = players[imposterIndex].name
-                imposterIndex = -1
-            } else if (numberOfPlayersLeft <= 2) {
-                players[imposterIndex].score += players.length - 1
-                isStarted = false
-                winner = 'imposter'
-                foundImposter = players[imposterIndex].name
-                imposterIndex = -1
-            }
+            game.voteImposter(msg.playerName)
             update()
         }
     })

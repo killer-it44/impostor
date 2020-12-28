@@ -21,9 +21,6 @@
         .eliminated {
             text-decoration: line-through;
         }
-        /* .md-list-item-content {
-            padding: 1px;
-        } */
     </style>
     <script>
         Vue.use(VueMaterial.default)
@@ -89,9 +86,9 @@
                             </md-card-header>
                         </md-card>
 
-                        <md-card v-if="winner">
+                        <md-card v-if="winners.length > 0">
                             <md-card-content>
-                                {{imposter}} war der Doppelagent. {{winner === 'group' ? 'Gruppe' : 'Doppelagent'}} hat gewonnen.
+                                Spiel vorbei. Gewinner: {{winners.join(', ')}}.
                             </md-card-content>
                         </md-card>
                     </md-app-content>
@@ -113,10 +110,13 @@
                     word: '',
                     isConnected: false,
                     players: [],
-                    isStarted: false,
-                    winner: '',
-                    imposter: '',
+                    winners: [],
                     selectedPlayer: ''
+                }
+            },
+            computed : {
+                isStarted : function() {
+                    return this.word !== ''
                 }
             },
             methods: {
@@ -128,9 +128,7 @@
                         this.players = data.players
                         this.players.sort((playerA, playerB) => playerB.score - playerA.score)
                         this.word = data.word
-                        this.isStarted = data.isStarted
-                        this.winner = data.winner
-                        this.imposter = data.imposter
+                        this.winners = data.winners
                         this.selectedPlayer = ''
                     }
                     socket.onopen = () => {
