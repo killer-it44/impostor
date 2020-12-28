@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width,initial-scale=1,minimal-ui" name="viewport">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic|Material+Icons">
+    <link rel="stylesheet" href="https://unpkg.com/vue-material/dist/vue-material.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/vue-material/dist/theme/default.css">
+</head>
+
+<body>
+    <div id="app">
+    </div>
+
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://unpkg.com/vue-material"></script>
+
+    <style>
+        .eliminated {
+            text-decoration: line-through;
+        }
+        /* .md-list-item-content {
+            padding: 1px;
+        } */
+    </style>
+    <script>
+        Vue.use(VueMaterial.default)
+
+        const protocol = (window.location.protocol === 'https:') ? 'wss' : 'ws'
+        const url = `${protocol}://${location.host}/game`
+
+        let socket
+
+        new Vue({
+            el: '#app',
+            template: `
+                <md-app>
+                    <md-app-content>
+                        <md-field v-if="!hasJoined && isConnected">
+                            <label>Dein Name</label>
+                            <md-input v-model="name"></md-input>
+                            <md-button @click="join" class="md-raised md-primary">Beitreten</md-button>
+                        </md-field>
+
+                        <md-card v-if="hasJoined">
+                            <md-card-content>
+                                <md-list>
+                                    <md-list-item v-if="!isAdmin || !isStarted || players.length < 3"
+                                                  v-for="player in players" 
+                                                  :key="player.name">
+                                        <div :class="{eliminated: player.isEliminated}">
+                                            {{player.name}} {{player.name === name ? '(Du)' : ''}} [Punkte: {{player.score}}]
+                                        </div>
+                                    </md-list-item>
+                                    
+                                    <md-list-item v-if="isAdmin && isStarted && players.length > 2"
+                                                  v-for="player in players"
+                                                  :key="player.name">
+                                        <md-radio v-model="selectedPlayer" 
+                                                  :value="player.name" 
+                                                  :disabled="player.isEliminated">
+                                            <div :class="{eliminated: player.isEliminated}">
+                                                {{player.name}} {{player.name === name ? '(Du)' : ''}} [Punkte: {{player.score}}]
+                                            </div>
+                                        </md-radio>
+                                    </md-list-item>
+                                </md-list>
+                            </md-card-content>
+
+                            <md-card-actions v-if="isAdmin">
+                                <md-button v-if="selectedPlayer && isStarted" 
+                                           @click="vote"
+                                           class="md-raised md-primary">
+                                    Rauswählen
+                                </md-button>
+                                <md-button v-if="players.length > 2" @click="start" class="md-raised md-primary">
+                                    Neue Runde
+                                </md-button>
+                            </md-card-actions>
+                        </md-card>
+
+                        <p/>
+
+                        <md-card v-if="hasJoined && isStarted">
+                            <md-card-header>
+                                <div class="md-title">Wort: {{word}}</div>
+                            </md-card-header>
+                        </md-card>
+
+                        <md-card v-if="winner">
+                            <md-card-content>
+                                {{imposter}} war der Doppelagent. {{winner === 'group' ? 'Gruppe' : 'Doppelagent'}} hat gewonnen.
+                            </md-card-content>
+                        </md-card>
+                    </md-app-content>
+                </md-app>
+            `,
+            created: function () {
+                this.connect()
+                window.addEventListener('focus', () => {
+                    if (socket.readyState === WebSocket.CLOSED) {
+                        this.connect()
+                    }
+                })
+            },
+            data: function () {
+                return {
+                    isAdmin: false,
+                    hasJoined: false,
+                    name: '',
+                    word: '',
+                    isConnected: false,
+                    players: [],
+                    isStarted: false,
+                    winner: '',
+                    imposter: '',
+                    selectedPlayer: ''
+                }
+            },
+            methods: {
+                connect: function () {
+                    socket = new WebSocket(url)
+                    socket.onmessage = (event) => {
+                        const data = JSON.parse(event.data)
+                        this.isAdmin = data.isAdmin
+                        this.players = data.players
+                        this.players.sort((playerA, playerB) => playerB.score - playerA.score)
+                        this.word = data.word
+                        this.isStarted = data.isStarted
+                        this.winner = data.winner
+                        this.imposter = data.imposter
+                        this.selectedPlayer = ''
+                    }
+                    socket.onopen = () => {
+                        this.isConnected = true
+                        if (this.hasJoined) {
+                            this.join()
+                        }
+                    }
+                    socket.onerror = (error) => {
+                        this.connect()
+                    }
+                },
+                join: function () {
+                    socket.send(JSON.stringify({ command: 'join', playerName: this.name }))
+                    this.hasJoined = true
+                },
+                select: function (player) {
+                    this.selectedPlayer = player.name
+                },
+                vote: function () {
+                    socket.send(JSON.stringify({ command: 'vote', playerName: this.selectedPlayer }))
+                },
+                start: function () {
+                    socket.send(JSON.stringify({ command: 'start' }))
+                }
+            }
+        })
+    </script>
+</body>
+
+</html>

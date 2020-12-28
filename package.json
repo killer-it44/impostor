@@ -1,0 +1,17 @@
+{
+  "name": "imposter",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node main.js",
+    "test": "jasmine **/*.spec.js"
+  },
+  "keywords": ["game"],
+  "author": "https://github.com/xiaoye999",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-ws": "^4.0.0",
+    "jasmine": "^3.6.3"
+  }
+}
