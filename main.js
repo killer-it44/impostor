@@ -33,13 +33,13 @@ app.ws('/game', function (ws) {
         })
     }
 
-    // TODO handle connection close - we don't want to kick out folks immediately, but maybe should at least
-    // a) schedule a timeout after which the player will get kicked
-    // b) inform the others if it is the admin who 'disconnected', so they can claim the admin
     ws.on('close', function () {
         const droppedPlayerName = Object.keys(clients).find((name) => clients[name] === ws)
         if (droppedPlayerName) {
             console.log(`${droppedPlayerName} dropped`)
+            if (droppedPlayerName === game.players[0].name) {
+                game.players.push(game.players.shift())
+            }
             clients[droppedPlayerName] = dummyClient
         }
         update()
