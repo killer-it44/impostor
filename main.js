@@ -8,7 +8,8 @@ const app = express()
 expressWs(app)
 
 const game = new GameFactory().create()
-const playerClientMap = {}
+const clients = {}
+const dummyClient = { send: () => null }
 
 app.use(express.static('web-client'))
 
@@ -18,10 +19,11 @@ app.ws('/game', function (ws) {
         const players = game.players.map((player) => ({
             name: player.name,
             isEliminated: player.isEliminated,
-            score: player.score
+            score: player.score,
+            isDisconnected: clients[player.name] === dummyClient
         }))
         game.players.forEach((player, index) => {
-            playerClientMap[player.name].send(JSON.stringify({
+            clients[player.name].send(JSON.stringify({
                 isStarted: Boolean(game.commonWord),
                 isAdmin: (index === 0),
                 players: players,
@@ -35,11 +37,12 @@ app.ws('/game', function (ws) {
     // a) schedule a timeout after which the player will get kicked
     // b) inform the others if it is the admin who 'disconnected', so they can claim the admin
     ws.on('close', function () {
-        const droppedPlayerName = Object.keys(playerClientMap).find((playerName) => playerClientMap[playerName] === ws)
+        const droppedPlayerName = Object.keys(clients).find((name) => clients[name] === ws)
         if (droppedPlayerName) {
             console.log(`${droppedPlayerName} dropped`)
-            playerClientMap[droppedPlayerName] = { send: () => null }
+            clients[droppedPlayerName] = dummyClient
         }
+        update()
     })
 
     ws.on('message', function (msg) {
@@ -50,25 +53,22 @@ app.ws('/game', function (ws) {
         //      a) check that the connection of that player is dropped (not needed if the player would anyway get kicked after a timeout - see other TODO)
         //      b) have some mechanism to verify it is the same person, e.g. logon/secret mechanism or some client device identification (ip, agent, mac address, ...)
         if (msg.command === 'join') {
-            if (playerClientMap[msg.playerName]) {
+            if (clients[msg.playerName]) {
                 console.log(`${msg.playerName} reconnected`)
-                playerClientMap[msg.playerName] = ws
             } else {
                 game.join(msg.playerName)
-                playerClientMap[msg.playerName] = ws
             }
-            update()
-        }
-
-        if (msg.command === 'start') {
+            clients[msg.playerName] = ws
+        } else if (msg.command === 'start') {
             game.start()
-            update()
-        }
-
-        if (msg.command === 'vote') {
+        } else if (msg.command === 'kick') {
+            game.kick(msg.playerName)
+        } else if (msg.command === 'vote') {
             game.voteImposter(msg.playerName)
-            update()
+        } else {
+            throw new Error('invalid command')
         }
+        update()
     })
 })
 

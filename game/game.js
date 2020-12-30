@@ -9,7 +9,7 @@ const Game = function (randomIndexProvider, randomWordPairProvider) {
         this.players.push({ name: name, isEliminated: true, isImposter: false, word: this.commonWord, score: 0 })
     }
 
-    this.kickout = (name) => {
+    this.kick = (name) => {
         this.players = this.players.filter((p) => p.name !== name)
     }
 

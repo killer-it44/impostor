@@ -8,20 +8,19 @@
         href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic|Material+Icons">
     <link rel="stylesheet" href="https://unpkg.com/vue-material/dist/vue-material.min.css">
     <link rel="stylesheet" href="https://unpkg.com/vue-material/dist/theme/default.css">
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://unpkg.com/vue-material"></script>
+    <style>
+        .eliminated {
+            text-decoration: line-through;
+        }
+    </style>
 </head>
 
 <body>
     <div id="app">
     </div>
 
-    <script src="https://unpkg.com/vue"></script>
-    <script src="https://unpkg.com/vue-material"></script>
-
-    <style>
-        .eliminated {
-            text-decoration: line-through;
-        }
-    </style>
     <script>
         Vue.use(VueMaterial.default)
 
@@ -44,34 +43,24 @@
                         <md-card v-if="hasJoined">
                             <md-card-content>
                                 <md-list>
-                                    <md-list-item v-if="!isAdmin || !isStarted || players.length < 3"
-                                                  v-for="player in players" 
+                                    <md-list-item v-for="player in players"
                                                   :key="player.name">
-                                        <div :class="{eliminated: player.isEliminated}">
+                                        <span class="md-list-item-text" :class="{eliminated: player.isEliminated && isStarted}">
                                             {{player.name}} {{player.name === name ? '(Du)' : ''}} [Punkte: {{player.score}}]
-                                        </div>
-                                    </md-list-item>
-                                    
-                                    <md-list-item v-if="isAdmin && isStarted && players.length > 2"
-                                                  v-for="player in players"
-                                                  :key="player.name">
-                                        <md-radio v-model="selectedPlayer" 
-                                                  :value="player.name" 
-                                                  :disabled="player.isEliminated">
-                                            <div :class="{eliminated: player.isEliminated}">
-                                                {{player.name}} {{player.name === name ? '(Du)' : ''}} [Punkte: {{player.score}}]
-                                            </div>
-                                        </md-radio>
+                                        </span>
+                                        <md-button v-if="isAdmin && player.isDisconnected" class="md-icon-button md-list-action" @click="kick(player)">
+                                            <md-icon class="md-primary md-accent">link_off</md-icon>
+                                        </md-button>
+                                        <md-button v-if="isAdmin && isStarted && !player.isEliminated"
+                                                   class="md-icon-button md-list-action"
+                                                   @click="vote(player)">
+                                            <md-icon class="md-primary">eject</md-icon>
+                                        </md-button>
                                     </md-list-item>
                                 </md-list>
                             </md-card-content>
 
                             <md-card-actions v-if="isAdmin">
-                                <md-button v-if="selectedPlayer && isStarted" 
-                                           @click="vote"
-                                           class="md-raised md-primary">
-                                    Rauswählen
-                                </md-button>
                                 <md-button v-if="players.length > 2" @click="start" class="md-raised md-primary">
                                     Neue Runde
                                 </md-button>
@@ -86,7 +75,7 @@
                             </md-card-header>
                         </md-card>
 
-                        <md-card v-if="winners.length > 0">
+                        <md-card v-if="isConnected & (winners.length > 0)">
                             <md-card-content>
                                 Spiel vorbei. Gewinner: {{winners.join(', ')}}.
                             </md-card-content>
@@ -111,12 +100,12 @@
                     isConnected: false,
                     players: [],
                     winners: [],
-                    selectedPlayer: ''
+                    selectedPlayerName: ''
                 }
             },
-            computed : {
-                isStarted : function() {
-                    return this.word !== ''
+            computed: {
+                isStarted: function () {
+                    return (this.word !== '') && (this.players.length > 2)
                 }
             },
             methods: {
@@ -129,7 +118,7 @@
                         this.players.sort((playerA, playerB) => playerB.score - playerA.score)
                         this.word = data.word
                         this.winners = data.winners
-                        this.selectedPlayer = ''
+                        this.selectedPlayerName = ''
                     }
                     socket.onopen = () => {
                         this.isConnected = true
@@ -137,19 +126,16 @@
                             this.join()
                         }
                     }
-                    socket.onerror = (error) => {
-                        this.connect()
-                    }
                 },
                 join: function () {
                     socket.send(JSON.stringify({ command: 'join', playerName: this.name }))
                     this.hasJoined = true
                 },
-                select: function (player) {
-                    this.selectedPlayer = player.name
+                kick: function(player) {
+                    socket.send(JSON.stringify({ command: 'kick', playerName: player.name }))
                 },
-                vote: function () {
-                    socket.send(JSON.stringify({ command: 'vote', playerName: this.selectedPlayer }))
+                vote: function (player) {
+                    socket.send(JSON.stringify({ command: 'vote', playerName: player.name }))
                 },
                 start: function () {
                     socket.send(JSON.stringify({ command: 'start' }))

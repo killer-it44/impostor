@@ -16,9 +16,9 @@ describe('game', () => {
         expect(game.players.length).toBe(1)
     })
 
-    it('can kickout players', () => {
+    it('can kick players', () => {
         game.join('alice')
-        game.kickout('alice')
+        game.kick('alice')
         expect(game.players.length).toBe(0)
     })
 
