@@ -2,7 +2,10 @@
 
 const RandomIndexProvider = function() {
     this.get = (poolSize) => {
-        return Math.floor(Math.random() * poolSize)
+        if (poolSize > 0) {
+            return Math.floor(Math.random() * poolSize)
+        }
+        throw new Error('expected a value greater than 0')
     }
 }
 
