@@ -1,7 +1,7 @@
 {
-  "name": "imposter",
+  "name": "impostor",
   "version": "1.0.0",
-  "description": "",
+  "description": "A little game with words",
   "scripts": {
     "start": "node main.js",
     "test": "jasmine **/*.spec.js"
