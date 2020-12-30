@@ -9,6 +9,10 @@ const Game = function (randomIndexProvider, randomWordPairProvider) {
         this.players.push({ name: name, isEliminated: true, isImposter: false, word: this.commonWord, score: 0 })
     }
 
+    this.kickout = (name) => {
+        this.players = this.players.filter((p) => p.name !== name)
+    }
+
     this.canStart = () => {
         return this.players.length > 2
     }
@@ -31,7 +35,6 @@ const Game = function (randomIndexProvider, randomWordPairProvider) {
 
     this.guessWord = (word) => {
         if (word === this.commonWord) {
-            this.winner = Game.IMPOSTER
             this.winners = this.players.filter((p) => p.isImposter).map((p) => p.name)
             addScore((p) => p.isImposter, this.players.length - 1)
         }
@@ -42,18 +45,13 @@ const Game = function (randomIndexProvider, randomWordPairProvider) {
 
         const remainingPlayers = this.players.filter((p) => !p.isEliminated)
         if (!remainingPlayers.find((p) => p.isImposter)) {
-            this.winner = Game.GROUP
             this.winners = this.players.filter((p) => !p.isImposter).map((p) => p.name)
             addScore((p) => !p.isImposter, 1)
         } else if (remainingPlayers.length === 2) {
-            this.winner = Game.IMPOSTER
             this.winners = this.players.filter((p) => p.isImposter).map((p) => p.name)
             addScore((p) => p.isImposter, this.players.length - 1)
         }
     }
 }
-
-Game.IMPOSTER = Symbol()
-Game.GROUP = Symbol()
 
 module.exports = Game

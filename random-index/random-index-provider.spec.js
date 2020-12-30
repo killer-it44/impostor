@@ -9,8 +9,8 @@ describe('random index provider', () => {
         randomIndexProvider = new RandomIndexProvider()
     })
 
-    it('returns always 0 if the pool size is 1', () => {
-        const index = randomIndexProvider.get(0)
+    it('returns 0 if the pool size is 1', () => {
+        const index = randomIndexProvider.get(1)
         expect(index).toBe(0)
     })
 
