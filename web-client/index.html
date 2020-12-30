@@ -36,8 +36,8 @@
                     <md-app-content>
                         <md-field v-if="!hasJoined && isConnected">
                             <label>Dein Name</label>
-                            <md-input v-model="name"></md-input>
-                            <md-button @click="join" class="md-raised md-primary">Beitreten</md-button>
+                            <md-input v-model="name" maxlength="16" required></md-input>
+                            <md-button v-if="name.length > 0" @click="join" class="md-raised md-primary">Beitreten</md-button>
                         </md-field>
 
                         <md-card v-if="hasJoined">
