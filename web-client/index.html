@@ -27,7 +27,7 @@
         Vue.use(VueMaterial.default)
 
         const protocol = (window.location.protocol === 'https:') ? 'wss' : 'ws'
-        const url = `${protocol}://${location.host}/game`
+        const baseUrl = `${protocol}://${location.host}/games`
 
         let socket
 
@@ -36,19 +36,32 @@
             template: `
                 <md-app>
                     <md-app-content>
-                        <md-field v-if="!hasJoined && isConnected">
-                            <label>Dein Name</label>
-                            <md-input v-model="name" maxlength="16" required></md-input>
-                            <md-button v-if="name.length > 0" @click="join" class="md-raised md-primary">Beitreten</md-button>
-                        </md-field>
+                        <form v-if="!hasJoined">
+                            <md-field>
+                                <label>Dein Name</label>
+                                <md-input v-model="playerName" maxlength="16" required></md-input>
+                                <md-button v-if="playerName.length > 0"
+                                           @click="createGame" class="md-raised md-primary">Neues Spiel erstellen</md-button>
+                            </md-field>
+
+                            <md-field>
+                                <label>Spiel</label>
+                                <md-input v-model="gameId" maxlength="6"></md-input>
+                                <md-button v-if="(playerName.length > 0) && (gameId.length===6)" 
+                                           @click="join" class="md-raised md-primary">Beitreten</md-button>
+                            </md-field>
+                        </form>
 
                         <md-card v-if="hasJoined">
+                            <md-card-header>
+                                <div class="md-title">Spiel {{gameId}}</div>
+                            </md-card-header>
                             <md-card-content>
                                 <md-list>
                                     <md-list-item v-for="player in players"
                                                   :key="player.name">
                                         <span class="md-list-item-text" :class="{eliminated: player.isEliminated && isStarted}">
-                                            {{player.name}} {{player.name === name ? '(Du)' : ''}} [Punkte: {{player.score}}]
+                                            {{player.name}} {{player.name === playerName ? '(Du)' : ''}} [Punkte: {{player.score}}]
                                         </span>
                                         <md-button v-if="isAdmin && player.isDisconnected" class="md-icon-button md-list-action" @click="kick(player)">
                                             <md-icon class="md-primary md-accent">link_off</md-icon>
@@ -77,7 +90,7 @@
                             </md-card-header>
                         </md-card>
 
-                        <md-card v-if="isConnected & (winners.length > 0)">
+                        <md-card v-if="winners.length > 0">
                             <md-card-content>
                                 Spiel vorbei. Gewinner: {{winners.join(', ')}}.
                             </md-card-content>
@@ -85,19 +98,13 @@
                     </md-app-content>
                 </md-app>
             `,
-            created: function () {
-                this.connect()
-                window.addEventListener('focus', () => {
-                    if (socket.readyState === WebSocket.CLOSED) {
-                        this.connect()
-                    }
-                })
-            },
             data: function () {
                 return {
                     isAdmin: false,
+                    //REVISE maybe gameId can be used as indicator to decide if player has joined
                     hasJoined: false,
-                    name: '',
+                    playerName: '',
+                    gameId: '',
                     word: '',
                     isConnected: false,
                     players: [],
@@ -110,30 +117,43 @@
                     return (this.word !== '') && (this.players.length > 2)
                 }
             },
+            created: function () {
+                // REVISE feels a bit awkward - check if it is cleaner using socket.onclose
+                window.addEventListener('focus', () => {
+                    if (socket && (socket.readyState === WebSocket.CLOSED) && this.hasJoined) {
+                        this.join()
+                    }
+                })
+            },
             methods: {
                 connect: function () {
-                    socket = new WebSocket(url)
-                    socket.onmessage = (event) => {
-                        const data = JSON.parse(event.data)
-                        this.isAdmin = data.isAdmin
-                        this.players = data.players
-                        this.players.sort((playerA, playerB) => playerB.score - playerA.score)
-                        this.word = data.word
-                        this.winners = data.winners
-                        this.selectedPlayerName = ''
-                    }
-                    socket.onopen = () => {
-                        this.isConnected = true
-                        if (this.hasJoined) {
-                            this.join()
+                    return new Promise((resolve) => {
+                        socket = new WebSocket(`${baseUrl}/${this.gameId}`)
+                        socket.onmessage = (event) => {
+                            const data = JSON.parse(event.data)
+                            this.isAdmin = data.isAdmin
+                            this.players = data.players
+                            this.players.sort((playerA, playerB) => playerB.score - playerA.score)
+                            this.word = data.word
+                            this.winners = data.winners
+                            this.selectedPlayerName = ''
                         }
-                    }
+                        socket.onopen = () => {
+                            resolve()
+                        }
+                    })
                 },
-                join: function () {
-                    socket.send(JSON.stringify({ command: 'join', playerName: this.name }))
+                createGame: async function () {
+                    const response = await fetch('/games', { method: 'POST' })
+                    this.gameId = response.headers.get('location')
+                    this.join()
+                },
+                join: async function () {
+                    await this.connect()
+                    socket.send(JSON.stringify({ command: 'join', playerName: this.playerName }))
                     this.hasJoined = true
                 },
-                kick: function(player) {
+                kick: function (player) {
                     socket.send(JSON.stringify({ command: 'kick', playerName: player.name }))
                 },
                 vote: function (player) {
