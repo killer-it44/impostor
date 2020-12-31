@@ -198,4 +198,4 @@ module.exports = [['Stuhl', 'Sessel', 'Hocker', 'Tisch'],
 ['Esszimmer', 'Schlafzimmer', 'Badezimmer', 'Wohnzimmer'],
 ['Teig', 'Gummi', 'Knete', 'Silikon'],
 ['Skispringen', 'Biathlon', 'Slalom', 'Bobfahren']
-];
+]
