@@ -1,29 +1,40 @@
 'use strict'
 
+const RandomIndexProvider = require('./random-index/random-index-provider')
 const GameFactory = require('./game/game-factory')
 const express = require('express')
 const expressWs = require('express-ws')
 const app = express()
-
 expressWs(app)
 
-const game = new GameFactory().create()
+const randomIndexProvider = new RandomIndexProvider()
+const games = {}
 const clients = {}
 const dummyClient = { send: () => null }
 
 app.use(express.static('web-client'))
 
-app.ws('/game', function (ws) {
+app.post('/games', function(req, res) {
+    // TODO set a timeout of e.g. 30 minutes - if there is no activity, the room gets automatically deleted
+    const gameId = randomIndexProvider.get(Math.pow(2, 24)).toString(16)
+    games[gameId] = new GameFactory().create()
+    clients[gameId] = {}
+    res.status(201).location(`${gameId}`).end()
+})
+
+app.ws('/games/:id', function (ws, req) {
+    const game = games[req.params.id]
+    const gameClients = clients[req.params.id]
 
     const update = function () {
         const players = game.players.map((player) => ({
             name: player.name,
             isEliminated: player.isEliminated,
             score: player.score,
-            isDisconnected: clients[player.name] === dummyClient
+            isDisconnected: gameClients[player.name] === dummyClient
         }))
         game.players.forEach((player, index) => {
-            clients[player.name].send(JSON.stringify({
+            gameClients[player.name].send(JSON.stringify({
                 isStarted: Boolean(game.commonWord),
                 isAdmin: (index === 0),
                 players: players,
@@ -34,15 +45,15 @@ app.ws('/game', function (ws) {
     }
 
     ws.on('close', function () {
-        const droppedPlayerName = Object.keys(clients).find((name) => clients[name] === ws)
+        const droppedPlayerName = Object.keys(gameClients).find((playerName) => gameClients[playerName] === ws)
         if (droppedPlayerName) {
-            console.log(`${droppedPlayerName} dropped`)
+            console.log(`${droppedPlayerName} dropped from game ${req.params.id}`)
             if (droppedPlayerName === game.players[0].name) {
                 game.players.push(game.players.shift())
             }
-            clients[droppedPlayerName] = dummyClient
+            gameClients[droppedPlayerName] = dummyClient
         }
-        update()
+        update(req.params.id)
     })
 
     ws.on('message', function (msg) {
@@ -53,12 +64,13 @@ app.ws('/game', function (ws) {
         //      a) check that the connection of that player is dropped (not needed if the player would anyway get kicked after a timeout - see other TODO)
         //      b) have some mechanism to verify it is the same person, e.g. logon/secret mechanism or some client device identification (ip, agent, mac address, ...)
         if (msg.command === 'join') {
-            if (clients[msg.playerName]) {
-                console.log(`${msg.playerName} reconnected`)
+            // FIXME fails when somebody tries to join a game that doesn't exist (any more)
+            if (gameClients[msg.playerName]) {
+                console.log(`${msg.playerName} reconnected to game ${req.params.id}`)
             } else {
                 game.join(msg.playerName)
             }
-            clients[msg.playerName] = ws
+            gameClients[msg.playerName] = ws
         } else if (msg.command === 'start') {
             game.start()
         } else if (msg.command === 'kick') {
