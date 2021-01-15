@@ -92,14 +92,23 @@ describe('game', () => {
             it('will consider as correct if close enough', () => {
                 randomWordPairProvider.get = () => ['Tom & Jerry', 'Sylvester & Tweety']
                 game.start()
-                game.guessWord('tohm and jerri')
+                game.guessWord('tom and jerry')
+                expect(game.winners).not.toEqual([])
+
+                game.start()
+                game.guessWord('tom & jerri')
                 expect(game.winners).not.toEqual([])
             })
 
             it('will not consider as correct if too different', () => {
                 randomWordPairProvider.get = () => ['Tom & Jerry', 'Sylvester & Tweety']
                 game.start()
-                game.guessWord('tohm and jerriii')
+                game.guessWord('tom and jerri')
+                expect(game.winners).toEqual([])
+
+                randomWordPairProvider.get = () => ['Shakespeare', 'Li Bai']
+                game.start()
+                game.guessWord('shakesbier')
                 expect(game.winners).toEqual([])
             })
 

@@ -149,7 +149,7 @@
                 errorMessage: function () {
                     switch (this.error) {
                         case '': return ''
-                        case 'game-not-existing': return `Spiel ${this.gameId} existiert nicht`
+                        case 'game-not-existing': return `Spiel nicht gefunden oder beendet`
                         default: return `Unbekannte Fehlernachricht: ${this.error}`
                     }
                 }

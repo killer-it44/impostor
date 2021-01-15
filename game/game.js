@@ -26,7 +26,7 @@ const Game = function (randomIndexProvider, randomWordPairProvider) {
             player.word = player.isImpostor ? word2 : word1
         })
         this.commonWord = word1
-        fuse = new Fuse([word1, word2], { includeScore: true, threshold: 0.4 })
+        fuse = new Fuse([word1, word2], { includeScore: true, threshold: 0.25 })
         this.winners = []
         this.isStarted = true
     }
