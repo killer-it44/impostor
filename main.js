@@ -5,31 +5,47 @@ const GameFactory = require('./game/game-factory')
 const express = require('express')
 const expressWs = require('express-ws')
 const app = express()
-expressWs(app)
+const wsInstance = expressWs(app)
 
 const randomIndexProvider = new RandomIndexProvider()
 const games = {}
 const clients = {}
+const timeouts = {}
 const dummyClient = { send: () => null }
 
 app.use(express.static('web-client'))
 
+const endGame = function(id) {
+    delete games[id]
+    Object.values(clients[id]).forEach((client) => {
+        client.send(JSON.stringify({ error: 'game-not-existing' }))
+    })
+    delete clients[id]
+    console.log(`[${id}] ended, dropped all clients`)
+    console.log(`${wsInstance.getWss().clients.size} clients remaining`)
+}
+
 app.post('/games', function (req, res) {
-    // TODO set a timeout of e.g. 30 minutes - if there is no activity, the room gets automatically deleted
+    // FIXME we could overwrite an existing game we unluckily generate the same id
     const gameId = randomIndexProvider.get(Math.pow(2, 24)).toString(16).padStart(6, '0')
     games[gameId] = new GameFactory().create()
     clients[gameId] = {}
+    const sixHours = 1000 * 60 * 60 * 6
+    setTimeout(() => endGame(gameId), sixHours)
+    timeouts[gameId] = Date.now() + sixHours
     res.status(201).location(`${gameId}`).end()
 })
 
-app.ws('/games/:id', function (ws, req) {
+app.ws('/games/:id', function (ws, req) {    
     const gameId = req.params.id
+    console.log(`[${gameId}] new client connecting`)
+    console.log(`${wsInstance.getWss().clients.size} clients remaining`)
     const game = games[gameId]
     const gameClients = clients[gameId]
     if (!gameClients) {
         ws.send(JSON.stringify({ error: 'game-not-existing' }))
         ws.close()
-        console.error(`Game ${gameId} does not exist`)
+        console.error(`game ${gameId} does not exist`)
         return
     }
 
@@ -43,6 +59,7 @@ app.ws('/games/:id', function (ws, req) {
         }))
         game.players.forEach((player, index) => {
             gameClients[player.name].send(JSON.stringify({
+                timeout: timeouts[gameId],
                 players: players,
                 isStarted: game.isStarted,
                 canStart: game.canStart(),
@@ -86,9 +103,10 @@ app.ws('/games/:id', function (ws, req) {
     ws.on('close', function () {
         const disconnectedPlayerName = Object.keys(gameClients).find((playerName) => gameClients[playerName] === ws)
         if (disconnectedPlayerName) {
-            console.log(`[${gameId}] ${disconnectedPlayerName} disconnected`)
             gameClients[disconnectedPlayerName] = dummyClient
             update(gameId)
+            console.log(`[${gameId}] ${disconnectedPlayerName} disconnected`)
+            console.log(`${wsInstance.getWss().clients.size} clients remaining`)
         }
     })
 
