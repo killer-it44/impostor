@@ -7,19 +7,13 @@ describe('game', () => {
 
     beforeEach(() => {
         randomIndexProvider = { get: () => null }
-        randomWordPairProvider = { get: () => null }
+        randomWordPairProvider = { get: () => ['word1', 'word2'] }
         game = new Game(randomIndexProvider, randomWordPairProvider)
     })
 
     it('can be joined', () => {
         game.join('alice')
         expect(game.players.length).toBe(1)
-    })
-
-    it('can kick players', () => {
-        game.join('alice')
-        game.kick('alice')
-        expect(game.players.length).toBe(0)
     })
 
     it('needs 3 players to start', () => {
@@ -38,28 +32,26 @@ describe('game', () => {
             game.join('cindy')
         })
 
-        it('will show the same word to all players except one (=imposter) when started', () => {
+        it('will show a different word to bob on start if he is the imposer', () => {
             const INDEX_BOB = 1
             randomIndexProvider.get = () => INDEX_BOB
-            randomWordPairProvider.get = () => ['a', 'b']
 
             game.start()
 
-            expect(game.players[0].word).toEqual('a')
-            expect(game.players[1].word).toEqual('b')
-            expect(game.players[2].word).toEqual('a')
+            expect(game.players[0].word).toEqual('word1')
+            expect(game.players[1].word).toEqual('word2')
+            expect(game.players[2].word).toEqual('word1')
         })
 
-        describe('started with alice being the imposter (=having the different word)', () => {
+        describe('started with alice being the impostor (=having the different word)', () => {
             beforeEach(() => {
                 randomIndexProvider.get = () => 0
-                randomWordPairProvider.get = () => ['a', 'b']
                 game.start()
                 expect(game.winners).toEqual([])
             })
 
             it('will end when common word is guessed correctly - alice wins, gets 2 points (=size of group)', () => {
-                game.guessWord('a')
+                game.guessWord('word1')
                 expect(game.winners).toEqual(['alice'])
                 expect(game.players[0].score).toBe(2)
                 expect(game.players[1].score).toBe(0)
@@ -67,25 +59,55 @@ describe('game', () => {
             })
 
             it('will continue when common word is not guessed correctly', () => {
-                game.guessWord('b')
+                game.guessWord('word2')
                 expect(game.winners).toEqual([])
             })
 
             it('will end when alive gets voted out - bob and cindy win, get 1 point each', () => {
-                game.voteImposter('alice')
+                game.voteImpostor('alice')
                 expect(game.winners).toEqual(['bob', 'cindy'])
                 expect(game.players[0].score).toBe(0)
                 expect(game.players[1].score).toBe(1)
                 expect(game.players[2].score).toBe(1)
             })
 
-            it('will end when only alice and one other left - alice wins, gets 2 points (=size of group)', () => {
-                game.voteImposter('bob')
+            it('will end when bob gets voted out - alice wins, gets 2 points (=size of group)', () => {
+                game.voteImpostor('bob')
                 expect(game.winners).toEqual(['alice'])
                 expect(game.players[0].score).toBe(2)
                 expect(game.players[1].score).toBe(0)
                 expect(game.players[2].score).toBe(0)
             })
+
+            it('will end when bob gets kicked from the game - alice wins, game cannot be started anymore', () => {
+                game.kick('bob')
+                expect(game.winners).toEqual(['alice'])
+                expect(game.canStart()).toBe(false)
+            })
+        })
+    })
+
+    describe('kicking players', () => {
+        it('will remove the player from the game', () => {
+            game.join('alice')
+            game.kick('alice')
+            expect(game.players.length).toBe(0)
+        })
+
+        it('will determine winner if game already started and kicking one player would end it', () => {
+            game.join('alice')
+            game.join('bob')
+            game.join('cindy')
+            game.start()
+            game.kick('alice')
+            expect(game.winners).not.toEqual([])
+        })
+
+        it('will not determine winner if game not started', () => {
+            game.join('alice')
+            game.join('bob')
+            game.kick('alice')
+            expect(game.winners).toEqual([])
         })
     })
 })

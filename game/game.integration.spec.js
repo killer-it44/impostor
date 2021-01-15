@@ -9,7 +9,7 @@ describe('game integration', () => {
         game.join('bob')
         game.join('cindy')
         game.start()
-        game.voteImposter('alice')
+        game.voteImpostor('alice')
         expect(game.winners.length).toBeGreaterThan(0)
         expect(game.winners.length).toBeLessThan(3)
     })
