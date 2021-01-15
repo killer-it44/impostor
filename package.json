@@ -6,12 +6,15 @@
     "start": "node main.js",
     "test": "jasmine **/*.spec.js"
   },
-  "keywords": ["game"],
+  "keywords": [
+    "game"
+  ],
   "author": "https://github.com/xiaoye999",
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
+    "fuse.js": "^6.4.6",
     "jasmine": "^3.6.3"
   }
 }

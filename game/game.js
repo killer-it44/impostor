@@ -1,10 +1,13 @@
 'use strict'
 
+const Fuse = require('fuse.js')
+
 const Game = function (randomIndexProvider, randomWordPairProvider) {
     this.players = []
     this.commonWord = ''
     this.winners = []
     this.isStarted = false
+    let fuse
 
     this.join = (name) => {
         this.players.push({ name: name, isEliminated: true, isImpostor: false, word: this.commonWord, score: 0 })
@@ -23,6 +26,7 @@ const Game = function (randomIndexProvider, randomWordPairProvider) {
             player.word = player.isImpostor ? word2 : word1
         })
         this.commonWord = word1
+        fuse = new Fuse([word1, word2], { includeScore: true, threshold: 0.4 })
         this.winners = []
         this.isStarted = true
     }
@@ -44,8 +48,17 @@ const Game = function (randomIndexProvider, randomWordPairProvider) {
     }
 
     this.guessWord = (word) => {
-        if (word === this.commonWord) {
-            impostorWins()
+        const searchResults = fuse.search(word)
+        if (searchResults.length === 1) {
+            if (searchResults[0].item === this.commonWord) {
+                impostorWins()
+            }
+        } else if (searchResults.length === 2) {
+            const scoreForCommonWord = searchResults.find((r) => r.item === this.commonWord).score
+            const scoreForImpostorWord = searchResults.find((r) => r.item !== this.commonWord).score
+            if (scoreForCommonWord < scoreForImpostorWord) {
+                impostorWins()
+            }
         }
     }
 
