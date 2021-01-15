@@ -14,72 +14,87 @@ const dummyClient = { send: () => null }
 
 app.use(express.static('web-client'))
 
-app.post('/games', function(req, res) {
+app.post('/games', function (req, res) {
     // TODO set a timeout of e.g. 30 minutes - if there is no activity, the room gets automatically deleted
-    const gameId = randomIndexProvider.get(Math.pow(2, 24)).toString(16)
+    const gameId = randomIndexProvider.get(Math.pow(2, 24)).toString(16).padStart(6, '0')
     games[gameId] = new GameFactory().create()
     clients[gameId] = {}
     res.status(201).location(`${gameId}`).end()
 })
 
 app.ws('/games/:id', function (ws, req) {
-    const game = games[req.params.id]
-    const gameClients = clients[req.params.id]
+    const gameId = req.params.id
+    const game = games[gameId]
+    const gameClients = clients[gameId]
+    if (!gameClients) {
+        ws.send(JSON.stringify({ error: 'game-not-existing' }))
+        ws.close()
+        console.error(`Game ${gameId} does not exist`)
+        return
+    }
 
     const update = function () {
-        const players = game.players.map((player) => ({
+        const players = game.players.map((player, index) => ({
             name: player.name,
+            isAdmin: (index === 0),
             isEliminated: player.isEliminated,
             score: player.score,
             isDisconnected: gameClients[player.name] === dummyClient
         }))
         game.players.forEach((player, index) => {
             gameClients[player.name].send(JSON.stringify({
-                isStarted: Boolean(game.commonWord),
-                isAdmin: (index === 0),
                 players: players,
+                isStarted: game.isStarted,
+                canStart: game.canStart(),
                 word: player.word,
                 winners: game.winners,
             }))
         })
     }
 
-    ws.on('close', function () {
-        const droppedPlayerName = Object.keys(gameClients).find((playerName) => gameClients[playerName] === ws)
-        if (droppedPlayerName) {
-            console.log(`${droppedPlayerName} dropped from game ${req.params.id}`)
-            if (droppedPlayerName === game.players[0].name) {
-                game.players.push(game.players.shift())
-            }
-            gameClients[droppedPlayerName] = dummyClient
-        }
-        update(req.params.id)
-    })
-
-    ws.on('message', function (msg) {
-        msg = JSON.parse(msg)
-
-        // TODO need to handle join failure - maybe joining should be handled through HTTP, not WS
-        // TODO reconnect should somehow detect if it is really the same guy, not someone else just 'stealing the name', e.g. check:
-        //      a) check that the connection of that player is dropped (not needed if the player would anyway get kicked after a timeout - see other TODO)
-        //      b) have some mechanism to verify it is the same person, e.g. logon/secret mechanism or some client device identification (ip, agent, mac address, ...)
+    const executeCommand = function (msg) {
         if (msg.command === 'join') {
-            // FIXME fails when somebody tries to join a game that doesn't exist (any more)
             if (gameClients[msg.playerName]) {
-                console.log(`${msg.playerName} reconnected to game ${req.params.id}`)
+                console.log(`[${gameId}] ${msg.playerName} reconnected`)
             } else {
+                console.log(`[${gameId}] ${msg.playerName} joined`)
                 game.join(msg.playerName)
             }
             gameClients[msg.playerName] = ws
         } else if (msg.command === 'start') {
+            console.log(`[${gameId}] new round started`)
             game.start()
         } else if (msg.command === 'kick') {
+            console.log(`[${gameId}] ${msg.playerName} kicked`)
             game.kick(msg.playerName)
+            delete gameClients[msg.playerName]
         } else if (msg.command === 'vote') {
-            game.voteImposter(msg.playerName)
+            console.log(`[${gameId}] ${msg.playerName} voted`)
+            game.voteImpostor(msg.playerName)
+        } else if (msg.command === 'guess') {
+            console.log(`[${gameId}] ${msg.word} guessed`)
+            game.guessWord(msg.word)
+        } else if (msg.command === 'claim') {
+            console.log(`[${gameId}] ${msg.playerName} claimed admin`)
+            const playerIndex = game.players.findIndex((p) => p.name == msg.playerName)
+            game.players.unshift(game.players.splice(playerIndex, 1)[0])
         } else {
-            throw new Error('invalid command')
+            throw new Error('invalid command or message')
         }
+    }
+
+    ws.on('close', function () {
+        const disconnectedPlayerName = Object.keys(gameClients).find((playerName) => gameClients[playerName] === ws)
+        if (disconnectedPlayerName) {
+            console.log(`[${gameId}] ${disconnectedPlayerName} disconnected`)
+            gameClients[disconnectedPlayerName] = dummyClient
+            update(gameId)
+        }
+    })
+
+    ws.on('message', function (msgString) {
+        const msg = JSON.parse(msgString)
+        executeCommand(msg)
         update()
     })
 })

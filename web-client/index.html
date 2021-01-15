@@ -16,6 +16,10 @@
         .eliminated {
             text-decoration: line-through;
         }
+
+        .disconnected {
+            color: darkgray
+        }
     </style>
 </head>
 
@@ -37,18 +41,22 @@
                 <md-app>
                     <md-app-content>
                         <form v-if="!hasJoined">
+                            <md-toolbar v-if="this.errorMessage" class="md-accent">{{this.errorMessage}}</md-toolbar>
+
                             <md-field>
                                 <label>Dein Name</label>
                                 <md-input v-model="playerName" maxlength="16" required></md-input>
                                 <md-button v-if="playerName.length > 0"
-                                           @click="createGame" class="md-raised md-primary">Neues Spiel erstellen</md-button>
+                                           @click="createGame"
+                                           class="md-raised md-primary">Neues Spiel erstellen</md-button>
                             </md-field>
 
                             <md-field>
                                 <label>Spiel</label>
                                 <md-input v-model="gameId" maxlength="6"></md-input>
-                                <md-button v-if="(playerName.length > 0) && (gameId.length===6)" 
-                                           @click="join" class="md-raised md-primary">Beitreten</md-button>
+                                <md-button v-if="(playerName.length > 0) && (gameId.length===6)"
+                                           @click="join"
+                                           class="md-raised md-primary">Beitreten</md-button>
                             </md-field>
                         </form>
 
@@ -60,11 +68,19 @@
                                 <md-list>
                                     <md-list-item v-for="player in players"
                                                   :key="player.name">
-                                        <span class="md-list-item-text" :class="{eliminated: player.isEliminated && isStarted}">
+                                        <span class="md-list-item-text" 
+                                              :class="{eliminated: player.isEliminated && isStarted, 
+                                                       disconnected: player.isDisconnected}">
                                             {{player.name}} {{player.name === playerName ? '(Du)' : ''}} [Punkte: {{player.score}}]
                                         </span>
-                                        <md-button v-if="isAdmin && player.isDisconnected" class="md-icon-button md-list-action" @click="kick(player)">
+                                        <md-button v-if="player.isDisconnected"
+                                                   class="md-icon-button md-list-action"
+                                                   @click="kick(player)">
                                             <md-icon class="md-primary md-accent">link_off</md-icon>
+                                        </md-button>
+                                        <md-button v-if="isAdminDisconnected && player.name === playerName"
+                                                   class="md-icon-button md-list-action" @click="claim(player)">
+                                            <md-icon class="md-primary md-accent">star</md-icon>
                                         </md-button>
                                         <md-button v-if="isAdmin && isStarted && !player.isEliminated"
                                                    class="md-icon-button md-list-action"
@@ -76,7 +92,19 @@
                             </md-card-content>
 
                             <md-card-actions v-if="isAdmin">
-                                <md-button v-if="players.length > 2" @click="start" class="md-raised md-primary">
+                                <md-dialog-prompt :md-active.sync="showDialog"
+                                                  v-model="guessedWord"
+                                                  md-title="Wort raten"
+                                                  md-input-placeholder="Wort eingeben..."
+                                                  md-cancel-text="Abbrechen"
+                                                  md-confirm-text="Ok"
+                                                  @md-confirm="guess"/>
+
+                                <md-button v-if="isStarted" @click="showDialog = true" class="md-primary md-raised">
+                                    Wort raten
+                                </md-button>
+
+                                <md-button v-if="canStart" @click="start" class="md-accent md-raised">
                                     Neue Runde
                                 </md-button>
                             </md-card-actions>
@@ -91,52 +119,74 @@
                         </md-card>
 
                         <md-card v-if="winners.length > 0">
-                            <md-card-content>
+                            <md-card-header>
                                 Spiel vorbei. Gewinner: {{winners.join(', ')}}.
-                            </md-card-content>
+                            </md-card-header>
                         </md-card>
                     </md-app-content>
                 </md-app>
             `,
+            // TODO rather have a "wonLastRound" property on each player and use this for highlighting
+            // TODO have a word property on each player that is '???' for the other players if the round is not yet over,
+            //      the words gets revealed when round is over
+            // TODO use fuzzy search
             data: function () {
                 return {
-                    isAdmin: false,
                     //REVISE maybe gameId can be used as indicator to decide if player has joined
                     hasJoined: false,
                     playerName: '',
                     gameId: '',
                     word: '',
-                    isConnected: false,
                     players: [],
+                    canStart: false,
+                    isStarted: false,
                     winners: [],
-                    selectedPlayerName: ''
+                    error: '',
+                    guessedWord: '',
+                    showDialog: false
                 }
             },
             computed: {
-                isStarted: function () {
-                    return (this.word !== '') && (this.players.length > 2)
+                isAdmin: function() {
+                    return this.players.find((p) => p.name === this.playerName).isAdmin
+                },
+                isAdminDisconnected: function() {
+                    return this.players.find((p) => p.isAdmin).isDisconnected
+                },
+                errorMessage: function () {
+                    switch (this.error) {
+                        case '': return ''
+                        case 'game-not-existing': return `Spiel ${this.gameId} existiert nicht`
+                        default: return `Unbekannte Fehlernachricht: ${this.error}`
+                    }
                 }
             },
             created: function () {
-                // REVISE feels a bit awkward - check if it is cleaner using socket.onclose
-                window.addEventListener('focus', () => {
+                window.addEventListener('focus', async () => {
                     if (socket && (socket.readyState === WebSocket.CLOSED) && this.hasJoined) {
                         this.join()
                     }
                 })
             },
             methods: {
-                connect: function () {
+                establishConnection: function () {
                     return new Promise((resolve) => {
                         socket = new WebSocket(`${baseUrl}/${this.gameId}`)
                         socket.onmessage = (event) => {
                             const data = JSON.parse(event.data)
-                            this.isAdmin = data.isAdmin
-                            this.players = data.players
-                            this.players.sort((playerA, playerB) => playerB.score - playerA.score)
-                            this.word = data.word
-                            this.winners = data.winners
-                            this.selectedPlayerName = ''
+                            if (data.error) {
+                                this.error = data.error
+                                this.hasJoined = false
+                            } else {
+                                this.players = data.players
+                                this.players.sort((playerA, playerB) => playerB.score - playerA.score)
+                                this.isStarted = data.isStarted
+                                this.canStart = data.canStart
+                                this.word = data.word
+                                this.winners = data.winners
+                                this.error = ''
+                                this.hasJoined = true
+                            }
                         }
                         socket.onopen = () => {
                             resolve()
@@ -149,15 +199,20 @@
                     this.join()
                 },
                 join: async function () {
-                    await this.connect()
+                    await this.establishConnection()
                     socket.send(JSON.stringify({ command: 'join', playerName: this.playerName }))
-                    this.hasJoined = true
                 },
                 kick: function (player) {
                     socket.send(JSON.stringify({ command: 'kick', playerName: player.name }))
                 },
+                claim: function (player) {
+                    socket.send(JSON.stringify({ command: 'claim', playerName: player.name }))
+                },
                 vote: function (player) {
                     socket.send(JSON.stringify({ command: 'vote', playerName: player.name }))
+                },
+                guess: function () {
+                    socket.send(JSON.stringify({ command: 'guess', word: this.guessedWord }))
                 },
                 start: function () {
                     socket.send(JSON.stringify({ command: 'start' }))
