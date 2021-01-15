@@ -6,7 +6,7 @@ describe('game', () => {
     let game, randomIndexProvider, randomWordPairProvider
 
     beforeEach(() => {
-        randomIndexProvider = { get: () => null }
+        randomIndexProvider = { get: () => 0 }
         randomWordPairProvider = { get: () => ['word1', 'word2'] }
         game = new Game(randomIndexProvider, randomWordPairProvider)
     })
@@ -35,6 +35,7 @@ describe('game', () => {
         it('will show a different word to bob on start if he is the imposer', () => {
             const INDEX_BOB = 1
             randomIndexProvider.get = () => INDEX_BOB
+            randomWordPairProvider.get = () => ['word1', 'word2']
 
             game.start()
 
@@ -46,6 +47,7 @@ describe('game', () => {
         describe('started with alice being the impostor (=having the different word)', () => {
             beforeEach(() => {
                 randomIndexProvider.get = () => 0
+                randomWordPairProvider.get = () => ['word1', 'word2']
                 game.start()
                 expect(game.winners).toEqual([])
             })
@@ -83,6 +85,33 @@ describe('game', () => {
                 game.kick('bob')
                 expect(game.winners).toEqual(['alice'])
                 expect(game.canStart()).toBe(false)
+            })
+        })
+
+        describe('guessing word', () => {
+            it('will consider as correct if close enough', () => {
+                randomWordPairProvider.get = () => ['Tom & Jerry', 'Sylvester & Tweety']
+                game.start()
+                game.guessWord('tohm and jerri')
+                expect(game.winners).not.toEqual([])
+            })
+
+            it('will not consider as correct if too different', () => {
+                randomWordPairProvider.get = () => ['Tom & Jerry', 'Sylvester & Tweety']
+                game.start()
+                game.guessWord('tohm and jerriii')
+                expect(game.winners).toEqual([])
+            })
+
+            it('will check if closer to the common word if the guess is close to both', () => {
+                randomWordPairProvider.get = () => ['word1', 'word2']
+                game.start()
+                game.guessWord('word3')
+                expect(game.winners).toEqual([])
+                game.guessWord('word2')
+                expect(game.winners).toEqual([])
+                game.guessWord('word1')
+                expect(game.winners).not.toEqual([])
             })
         })
     })
