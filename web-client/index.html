@@ -28,6 +28,19 @@
     </div>
 
     <script>
+        // TODO rather have a "wonLastRound" property on each player and use this for highlighting
+        // TODO have a word property on each player that is '???' for the other players if the round is not yet over,
+        //      the words gets revealed when round is over
+        // TODO clear word from guess popup
+        // TODO add a little help (where to place the button?)
+        // TODO be able to cache the user name
+        // TODO add a mechanism to navigate directly to a game
+        // TODO add a mechanism to share link to the game + direct navigation
+        // TODO language support
+        // TODO contribution feature for new words - e.g. something that automatically files a PR?
+        // TODO how should we deal with categories - right now causes trouble for guessing
+        //      either remove the information from the words, and pick words that are unambigious
+        //      or have the category as a fixed meta information that is always attached to a word set
         Vue.use(VueMaterial.default)
 
         const protocol = (window.location.protocol === 'https:') ? 'wss' : 'ws'
@@ -121,12 +134,9 @@
                     </md-app-content>
                 </md-app>
             `,
-            // TODO rather have a "wonLastRound" property on each player and use this for highlighting
-            // TODO have a word property on each player that is '???' for the other players if the round is not yet over,
-            //      the words gets revealed when round is over
             data: function () {
                 return {
-                    //REVISE maybe gameId can be used as indicator to decide if player has joined
+                    // REVISE maybe gameId can be used as indicator to decide if player has joined
                     hasJoined: false,
                     playerName: '',
                     gameId: '',
