@@ -28,14 +28,11 @@
     </div>
 
     <script>
-        // TODO rather have a "wonLastRound" property on each player and use this for highlighting
-        // TODO have a word property on each player that is '???' for the other players if the round is not yet over,
-        //      the words gets revealed when round is over
+        // TODO improve UX & simplify screens:
+        //      1. color the winners instead of a separate UI section
+        //      2. show the word next to player, other players have '???', gets revealed when round is over
         // TODO add a little help (where to place the button?)
-        // TODO add a mechanism to navigate directly to a game
-        // TODO add a mechanism to share link to the game + direct navigation
-        // TODO language support
-        // TODO contribution feature for new words - e.g. something that automatically files a PR?
+        // TODO language support & contribution feature for new words (e.g. something that automatically files a PR?)
         // TODO how should we deal with categories - right now causes trouble for guessing
         //      either remove the information from the words, and pick words that are unambigious
         //      or have the category as a fixed meta information that is always attached to a word set
@@ -167,6 +164,7 @@
             },
             created: function () {
                 this.playerName = window.localStorage.getItem('playerName') || ''
+                this.gameId = location.hash.substr(1) || ''
                 setInterval(() => {
                     if (socket && (socket.readyState === WebSocket.CLOSED) && this.hasJoined) {
                         this.join()
@@ -222,6 +220,7 @@
                     await this.establishConnection()
                     socket.send(JSON.stringify({ command: 'join', playerName: this.playerName }))
                     window.localStorage.setItem('playerName', this.playerName)
+                    location.hash = this.gameId
                 },
                 kick: function (player) {
                     socket.send(JSON.stringify({ command: 'kick', playerName: player.name }))
