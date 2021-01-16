@@ -15,7 +15,18 @@ const dummyClient = { send: () => null }
 
 app.use(express.static('web-client'))
 
-const endGame = function(id) {
+const filterActivePlayers = (gameClients) => Object.values(gameClients).filter((c) => c !== dummyClient)
+const filterInactivePlayers = (gameClients) => Object.values(gameClients).filter((c) => c === dummyClient)
+
+setInterval(function () {
+    console.log(`[heartbeat] ${wsInstance.getWss().clients.size} connected clients`)
+    console.log(`[heartbeat] ${Object.keys(games).length} games`)
+    const active = Object.values(clients).map(filterActivePlayers).flat().length
+    const inactive = Object.values(clients).map(filterInactivePlayers).flat().length
+    console.log(`[heartbeat] ${active} active, ${inactive} inactive players (${active + inactive} total)`)
+}, 5000)
+
+const endGame = function (id) {
     delete games[id]
     Object.values(clients[id]).forEach((client) => {
         client.send(JSON.stringify({ error: 'game-not-existing' }))
@@ -36,16 +47,15 @@ app.post('/games', function (req, res) {
     res.status(201).location(`${gameId}`).end()
 })
 
-app.ws('/games/:id', function (ws, req) {    
+app.ws('/games/:id', function (ws, req) {
     const gameId = req.params.id
     console.log(`[${gameId}] new client connecting`)
-    console.log(`${wsInstance.getWss().clients.size} clients remaining`)
     const game = games[gameId]
     const gameClients = clients[gameId]
-    if (!gameClients) {
+    if (!game) {
         ws.send(JSON.stringify({ error: 'game-not-existing' }))
-        ws.close()
-        console.error(`game ${gameId} does not exist`)
+        ws.close(4000)
+        console.log(`[${gameId}] game not existing`)
         return
     }
 
@@ -106,11 +116,15 @@ app.ws('/games/:id', function (ws, req) {
             gameClients[disconnectedPlayerName] = dummyClient
             update(gameId)
             console.log(`[${gameId}] ${disconnectedPlayerName} disconnected`)
-            console.log(`${wsInstance.getWss().clients.size} clients remaining`)
         }
     })
 
     ws.on('message', function (msgString) {
+        if (!game) {
+            ws.send(JSON.stringify({ error: 'game-not-existing' }))
+            console.log(`[${gameId}] game not existing`)
+            return
+        }
         const msg = JSON.parse(msgString)
         executeCommand(msg)
         update()
