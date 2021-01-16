@@ -38,7 +38,7 @@ const endGame = function (id) {
 
 app.post('/games', function (req, res) {
     let gameId
-    do { gameId = randomIndexProvider.get(Math.pow(2, 24)).toString(16).padStart(6, '0') } while (games[gameId])
+    do { gameId = randomIndexProvider.get(1000000).toString().padStart(6, '0') } while (games[gameId])
 
     games[gameId] = new GameFactory().create()
     clients[gameId] = {}
