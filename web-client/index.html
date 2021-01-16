@@ -34,7 +34,6 @@
         const baseUrl = `${protocol}://${location.host}/games`
 
         let socket
-
         new Vue({
             el: '#app',
             template: `
@@ -53,7 +52,7 @@
 
                             <md-field>
                                 <label>Spiel</label>
-                                <md-input v-model="gameId" maxlength="6"></md-input>
+                                <md-input v-model="gameId" maxlength="6" @keydown="gameIdKeydown($event)"></md-input>
                                 <md-button v-if="(playerName.length > 0) && (gameId.length===6)"
                                            @click="join"
                                            class="md-raised md-primary">Beitreten</md-button>
@@ -155,13 +154,20 @@
                 }
             },
             created: function () {
-                window.addEventListener('focus', async () => {
+                setInterval(() => {
                     if (socket && (socket.readyState === WebSocket.CLOSED) && this.hasJoined) {
                         this.join()
                     }
-                })
+                }, 2000)
             },
             methods: {
+                gameIdKeydown: function (event) {
+                    if (!(event.metaKey || event.ctrlKey)) {
+                        if (!(/^[0-9]$/.test(event.key) || event.key === 'Tab')) {
+                            event.preventDefault();
+                        }
+                    }
+                },
                 establishConnection: function () {
                     return new Promise((resolve) => {
                         socket = new WebSocket(`${baseUrl}/${this.gameId}`)
