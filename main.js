@@ -37,8 +37,9 @@ const endGame = function (id) {
 }
 
 app.post('/games', function (req, res) {
-    // FIXME we could overwrite an existing game we unluckily generate the same id
-    const gameId = randomIndexProvider.get(Math.pow(2, 24)).toString(16).padStart(6, '0')
+    let gameId
+    do { gameId = randomIndexProvider.get(Math.pow(2, 24)).toString(16).padStart(6, '0') } while (games[gameId])
+
     games[gameId] = new GameFactory().create()
     clients[gameId] = {}
     const sixHours = 1000 * 60 * 60 * 6
