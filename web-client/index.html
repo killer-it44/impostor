@@ -40,6 +40,9 @@
                 <md-app>
                     <md-app-content>
                         <form v-if="!hasJoined">
+                            <md-toolbar class="md-primary">
+                                <h3 class="md-title">Der Doppelagent</h3>
+                            </md-toolbar>                            
                             <md-toolbar v-if="this.errorMessage" class="md-accent">{{this.errorMessage}}</md-toolbar>
 
                             <md-field>
