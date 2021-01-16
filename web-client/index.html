@@ -31,7 +31,6 @@
         // TODO rather have a "wonLastRound" property on each player and use this for highlighting
         // TODO have a word property on each player that is '???' for the other players if the round is not yet over,
         //      the words gets revealed when round is over
-        // TODO clear word from guess popup
         // TODO add a little help (where to place the button?)
         // TODO be able to cache the user name
         // TODO add a mechanism to navigate directly to a game
@@ -111,17 +110,17 @@
                                 </md-list-item>
                             </md-list>
 
-                            <md-dialog-prompt :md-active.sync="showDialog"
-                                                  v-model="guessedWord"
-                                                  md-title="Wort raten"
-                                                  md-input-placeholder="Wort eingeben..."
-                                                  md-cancel-text="Abbrechen"
-                                                  md-confirm-text="Ok"
-                                                  @md-confirm="guess"/>
+                            <md-dialog-prompt v-model="guessedWord"
+                                              :md-active.sync="showDialog"
+                                              md-title="Wort raten"
+                                              md-input-placeholder="Wort eingeben..."
+                                              md-cancel-text="Abbrechen"
+                                              md-confirm-text="Ok"
+                                              @md-confirm="guess"/>
 
                             <md-toolbar v-if="hasJoined && isAdmin" class="md-transparent" md-elevation="0">
                                 <div class="md-toolbar-section-end">
-                                    <md-button v-if="isStarted" @click="showDialog = true" class="md-primary">
+                                    <md-button v-if="isStarted" @click="openGuessDialog" class="md-primary">
                                         Wort raten
                                     </md-button>
 
@@ -176,7 +175,9 @@
             methods: {
                 gameIdKeydown: function (event) {
                     if (!(event.metaKey || event.ctrlKey)) {
-                        if (!(/^[0-9]$/.test(event.key) || event.key === 'Tab')) {
+                        const isNumber = /^[0-9]$/.test(event.key)
+                        const isAllowedSpecialKey = ['Tab', 'Backspace', 'ArrowLeft', 'ArrowRight'].includes(event.key)
+                        if (!(isNumber || isAllowedSpecialKey)) {
                             event.preventDefault();
                         }
                     }
@@ -230,6 +231,10 @@
                 },
                 start: function () {
                     socket.send(JSON.stringify({ command: 'start' }))
+                },
+                openGuessDialog: function () {
+                    this.guessedWord = ''
+                    this.showDialog = true
                 }
             }
         })
