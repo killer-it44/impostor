@@ -32,10 +32,10 @@
         //      1. color the winners instead of a separate UI section
         //      2. show the word next to player, other players have '???', gets revealed when round is over
         // TODO add a little help (where to place the button?)
-        // TODO language support & contribution feature for new words (e.g. something that automatically files a PR?)
         // TODO how should we deal with categories - right now causes trouble for guessing
         //      either remove the information from the words, and pick words that are unambigious
         //      or have the category as a fixed meta information that is always attached to a word set
+        // TODO language support & contribution feature for new words (e.g. something that automatically files a PR?)
         Vue.use(VueMaterial.default)
 
         const protocol = (window.location.protocol === 'https:') ? 'wss' : 'ws'
