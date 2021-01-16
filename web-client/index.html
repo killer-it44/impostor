@@ -77,10 +77,10 @@
                             <md-toolbar class="md-primary">
                                 <h3 class="md-title">Spiel {{gameId}} (bis {{timeout}})</h3>
                             </md-toolbar>
-                            <md-toolbar v-if="hasJoined && (winners.length > 0)" class="md-accent">
+                            <md-toolbar v-if="winners.length > 0" class="md-accent" style="background: green">
                                 <h3 class="md-title">Gewinner: {{winners.join(', ')}}</h3>
                             </md-toolbar>
-                            <md-toolbar v-if="hasJoined && isStarted" class="md-transparent" md-elevation="0">
+                            <md-toolbar v-if="isStarted" class="md-transparent" md-elevation="0">
                                 <h3 class="md-title">Wort: {{word}}</h3>
                             </md-toolbar>
 
@@ -159,7 +159,8 @@
                 errorMessage: function () {
                     switch (this.error) {
                         case '': return ''
-                        case 'game-not-existing': return `Spiel nicht gefunden oder beendet`
+                        case 'general-socket-error': return 'Allgemeiner Verbindungsfehler'
+                        case 'game-not-existing': return 'Spiel nicht gefunden oder beendet'
                         default: return `Unbekannte Fehlernachricht: ${this.error}`
                     }
                 }
@@ -183,7 +184,7 @@
                     }
                 },
                 establishConnection: function () {
-                    return new Promise((resolve) => {
+                    return new Promise((resolve, reject) => {
                         socket = new WebSocket(`${baseUrl}/${this.gameId}`)
                         socket.onmessage = (event) => {
                             const data = JSON.parse(event.data)
@@ -205,6 +206,10 @@
                         }
                         socket.onopen = () => {
                             resolve()
+                        }
+                        socket.onerror = (error) => {
+                            this.error = 'general-socket-error'
+                            this.hasJoined = false
                         }
                     })
                 },
