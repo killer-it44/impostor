@@ -2,11 +2,12 @@
 
 const RandomIndexProvider = require('../random-index/random-index-provider')
 
-const RandomWordPairProvider = function(wordPool) {
+const RandomWordPairProvider = function(wordPool, language) {
     const randomIndexProvider = new RandomIndexProvider()
 
     this.get = () => {
-        const collection = wordPool.getCollection(randomIndexProvider.get(wordPool.getSize()))
+        const wordPoolSize = wordPool.getSize(language)
+        const collection = wordPool.getCollection(randomIndexProvider.get(wordPoolSize), language)
 
         const rndIndex1 = randomIndexProvider.get(collection.length)
         const word1 = collection.splice(rndIndex1, rndIndex1 + 1)[0]

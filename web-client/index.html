@@ -34,8 +34,7 @@
 
     <script>
         // TODO try card layout: name goes top w/o card, then card for creating new game, then card for joining
-        // TODO add a little help (where to place the button?)
-        // TODO language support UI & contribution feature for new words (e.g. something that automatically files a PR?)
+        // TODO language support UI
         Vue.use(VueMaterial.default)
 
         const protocol = (window.location.protocol === 'https:') ? 'wss' : 'ws'
@@ -175,7 +174,7 @@
                     error: '',
                     guessedWord: '',
                     showDialog: false,
-                    supportedWordPools: ['de'],
+                    supportedWordPools: ['de', 'en', 'zh'],
                     selectedWordPool: ''
                 }
             },
@@ -207,8 +206,8 @@
                 }, 2000)
             },
             methods: {
-                getLanguageName: function(code) {
-                    return {'de': 'Deu', 'en': 'Eng', 'zh': '中文'}[code]
+                getLanguageName: function (code) {
+                    return { 'de': 'Deu', 'en': 'Eng', 'zh': '中文' }[code]
                 },
                 gameIdKeydown: function (event) {
                     if (!(event.metaKey || event.ctrlKey)) {
@@ -250,7 +249,11 @@
                     })
                 },
                 createGame: async function () {
-                    const response = await fetch('/games', { method: 'POST' })
+                    const response = await fetch('/games', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ language: this.selectedWordPool })
+                    })
                     this.gameId = response.headers.get('location')
                     this.join()
                 },

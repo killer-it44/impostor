@@ -4,7 +4,7 @@ const GameFactory = require('./game-factory')
 
 describe('game integration', () => {
     it('should have a winner when one gets voted out of 3', () => {
-        const game = new GameFactory().create()
+        const game = new GameFactory().create('de')
         game.join('alice')
         game.join('bob')
         game.join('cindy')

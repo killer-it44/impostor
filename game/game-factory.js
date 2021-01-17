@@ -6,8 +6,8 @@ const RandomWordPairProvider = require('../words/random-word-pair-provider')
 const WordPool = require('../words/word-pool')
 
 const GameFactory = function () {
-    this.create = () => {
-        return new Game(new RandomIndexProvider(), new RandomWordPairProvider(new WordPool()))
+    this.create = (language) => {
+        return new Game(new RandomIndexProvider(), new RandomWordPairProvider(new WordPool(), language))
     }
 }
 

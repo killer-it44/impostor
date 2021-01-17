@@ -7,12 +7,12 @@ const words = {
 }
 
 const WordPool = function () {
-    this.getCollection = (index) => {
-        return [...words['de'][index]]
+    this.getCollection = (index, language) => {
+        return [...words[language][index]]
     }
 
-    this.getSize = () => {
-        return words['de'].length
+    this.getSize = (language) => {
+        return words[language].length
     }
 }
 
