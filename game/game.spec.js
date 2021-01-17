@@ -113,13 +113,25 @@ describe('game', () => {
             })
 
             it('will check if closer to the common word if the guess is close to both', () => {
-                randomWordPairProvider.get = () => ['word1', 'word2']
+                randomWordPairProvider.get = () => ['Word1', 'Word2']
                 game.start()
                 game.guessWord('word3')
                 expect(game.winners).toEqual([])
                 game.guessWord('word2')
                 expect(game.winners).toEqual([])
                 game.guessWord('word1')
+                expect(game.winners).not.toEqual([])
+            })
+
+            it('will ignore the hints in braces', () => {
+                randomWordPairProvider.get = () => ['Checkers (game)', 'Chess']
+                game.start()
+                game.guessWord('checkers')
+                expect(game.winners).not.toEqual([])
+
+                randomWordPairProvider.get = () => ['Checkers', 'Chess']
+                game.start()
+                game.guessWord('checkers (game)')
                 expect(game.winners).not.toEqual([])
             })
         })
