@@ -34,7 +34,7 @@
 
     <script>
         // TODO try card layout: name goes top w/o card, then card for creating new game, then card for joining
-        // TODO language support UI
+        // TODO supported word pools should come from the server and be detected automatically based on available files
         Vue.use(VueMaterial.default)
 
         const protocol = (window.location.protocol === 'https:') ? 'wss' : 'ws'
@@ -48,7 +48,7 @@
                     <md-toolbar v-if="this.errorMessage" class="md-accent">{{this.errorMessage}}</md-toolbar>
                     <div v-if="!hasJoined">
                         <md-toolbar class="md-primary">
-                            <h3 class="md-title">Der Doppelagent</h3>
+                            <h3 class="md-title">{{texts['title']}}</h3>
                         </md-toolbar>
                         <div style="padding:16px">
                             <div class="md-layout md-alignment-center">
@@ -71,7 +71,7 @@
                                         <md-select class="no-dd-icon" v-model="selectedWordPool">
                                             <md-option v-for="code in supportedWordPools"
                                                        :value="code">
-                                                {{getLanguageName(code)}}
+                                                {{languageNames[code]}}
                                             </md-option>
                                         </md-select>
                                     </md-field>
@@ -175,7 +175,9 @@
                     guessedWord: '',
                     showDialog: false,
                     supportedWordPools: ['de', 'en', 'zh'],
-                    selectedWordPool: ''
+                    languageNames: { 'de': 'Deu', 'en': 'Eng', 'zh': '中文' },
+                    selectedWordPool: '',
+                    texts: {}
                 }
             },
             computed: {
@@ -196,18 +198,34 @@
             },
             created: function () {
                 this.playerName = window.localStorage.getItem('playerName') || ''
-                const browserLanguage2 = navigator.language.substr(0, 2)
-                this.selectedWordPool = this.supportedWordPools.includes(browserLanguage2) ? browserLanguage2 : 'de'
                 this.gameId = location.hash.substr(1) || ''
+                this.loadLanguages()
                 setInterval(() => {
-                    if (socket && (socket.readyState === WebSocket.CLOSED) && this.hasJoined) {
-                        this.join()
-                    }
+                    if (socket && (socket.readyState === WebSocket.CLOSED) && this.hasJoined) this.join()
                 }, 2000)
             },
             methods: {
-                getLanguageName: function (code) {
-                    return { 'de': 'Deu', 'en': 'Eng', 'zh': '中文' }[code]
+                loadLanguages: function () {
+                    const languages = [...navigator.languages]
+                    const subLangs = languages.filter((l) => l.length > 2)
+                    subLangs.forEach((sl) => {
+                        const mainLang = sl.substr(0, 2)
+                        if (!languages.includes(mainLang)) {
+                            languages.splice(languages.indexOf(sl) + 1, 0, mainLang)
+                        }
+                    })
+                    if (!languages.includes('en')) languages.push('en')
+                    
+                    let sequence = Promise.resolve()
+                    languages.forEach((language) => {
+                        sequence = sequence
+                            .then(() => fetch(`${language}.json`))
+                            .then((res) => res.ok ? res.json() : {})
+                            .then((json) => this.texts = { ...json, ...this.texts })
+
+                        const l2 = language.substr(0, 2)
+                        if (this.supportedWordPools.includes(l2) && !this.selectedWordPool) this.selectedWordPool = l2
+                    })
                 },
                 gameIdKeydown: function (event) {
                     if (!(event.metaKey || event.ctrlKey)) {
