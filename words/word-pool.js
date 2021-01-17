@@ -1,14 +1,18 @@
 'use strict'
 
-const words = require('./words')
+const words = {
+    'de': require('./words-de'),
+    'en': require('./words-en'),
+    'zh': require('./words-zh')
+}
 
 const WordPool = function () {
     this.getCollection = (index) => {
-        return [...words[index]]
+        return [...words['de'][index]]
     }
 
     this.getSize = () => {
-        return words.length
+        return words['de'].length
     }
 }
 

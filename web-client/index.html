@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://unpkg.com/vue-material/dist/theme/default.css">
     <script src="https://unpkg.com/vue"></script>
     <script src="https://unpkg.com/vue-material"></script>
+
     <style>
         .eliminated {
             text-decoration: line-through;
@@ -19,6 +20,10 @@
 
         .disconnected {
             color: darkgray
+        }
+
+        .no-dd-icon i {
+            display: none
         }
     </style>
 </head>
@@ -28,8 +33,9 @@
     </div>
 
     <script>
+        // TODO try card layout: name goes top w/o card, then card for creating new game, then card for joining
         // TODO add a little help (where to place the button?)
-        // TODO language support & contribution feature for new words (e.g. something that automatically files a PR?)
+        // TODO language support UI & contribution feature for new words (e.g. something that automatically files a PR?)
         Vue.use(VueMaterial.default)
 
         const protocol = (window.location.protocol === 'https:') ? 'wss' : 'ws'
@@ -45,86 +51,115 @@
                         <md-toolbar class="md-primary">
                             <h3 class="md-title">Der Doppelagent</h3>
                         </md-toolbar>
-                        <form style="padding:16px">
-                            <md-field>
-                                <label>Dein Name</label>
-                                <md-input v-model="playerName" maxlength="16" required></md-input>
-                                <md-button v-if="playerName.length > 0"
-                                           @click="createGame"
-                                           class="md-raised md-primary">Neues Spiel</md-button>
-                            </md-field>
-
-                            <md-field>
-                                <label>Spiel</label>
-                                <md-input v-model="gameId" maxlength="6" @keydown="gameIdKeydown($event)"></md-input>
-                                <md-button v-if="(playerName.length > 0) && (gameId.length===6)"
-                                           @click="join"
-                                           class="md-raised md-primary">Beitreten</md-button>
-                            </md-field>
-                        </form>
-                    </div>
-                        <div v-if="hasJoined">
-                            <md-toolbar class="md-primary">
-                                <h3 class="md-title">Spiel {{gameId}} (bis {{timeout}})</h3>
-                            </md-toolbar>
-                            <md-toolbar v-if="isStarted" class="md-transparent" md-elevation="0">
-                                <h3 class="md-title">{{word}}</h3>
-                            </md-toolbar>
-
-                            <md-list>
-                                <md-list-item v-for="player in players"
-                                              :key="player.name">
-                                    <md-icon v-if="winners.includes(player.name)" style="color:green">verified</md-icon>
-                                    
-                                    <span class="md-list-item-text" 
-                                            :class="{eliminated: player.isEliminated && isStarted, 
-                                                    disconnected: player.isDisconnected}">
-                                        {{player.name}} {{player.name === playerName ? '(Du)' : ''}}
-                                    </span>
-
-                                    <span v-if="isStarted">[Punkte: {{player.score}}]</span>
-                                    <span v-if="winners.length > 0">{{player.word}}</span>
-
-                                    <md-button v-if="player.isDisconnected && isAdmin"
-                                                class="md-icon-button md-list-action"
-                                                @click="kick(player)">
-                                        <md-icon class="md-primary md-accent">link_off</md-icon>
-                                    </md-button>
-
-                                    <md-button v-if="isAdminDisconnected && player.name === playerName"
-                                                class="md-icon-button md-list-action" @click="claim(player)">
-                                        <md-icon class="md-primary md-accent">star</md-icon>
-                                    </md-button>
-
-                                    <md-button v-if="isAdmin && isStarted && !player.isEliminated"
-                                                class="md-icon-button md-list-action"
-                                                @click="vote(player)">
-                                        <md-icon class="md-primary">eject</md-icon>
-                                    </md-button>
-                                </md-list-item>
-                            </md-list>
-
-                            <md-dialog-prompt v-model="guessedWord"
-                                              :md-active.sync="showDialog"
-                                              md-title="Wort raten"
-                                              md-input-placeholder="Wort eingeben..."
-                                              md-cancel-text="Abbrechen"
-                                              md-confirm-text="Ok"
-                                              @md-confirm="guess"/>
-
-                            <md-toolbar v-if="hasJoined && isAdmin" class="md-transparent" md-elevation="0">
-                                <div class="md-toolbar-section-end">
-                                    <md-button v-if="isStarted" @click="openGuessDialog" class="md-primary">
-                                        Wort raten
-                                    </md-button>
-
-                                    <md-button v-if="canStart" @click="start" class="md-accent">
-                                        Neue Runde
+                        <div style="padding:16px">
+                            <div class="md-layout md-alignment-center">
+                                <div class="md-layout-item md-size-45">
+                                    <md-field>
+                                        <label>Dein Name</label>
+                                        <md-input v-model="playerName" maxlength="16" required></md-input>
+                                    </md-field>
+                                </div>
+                                <div class="md-layout-item md-size-40">
+                                    <md-button v-if="playerName.length > 0"
+                                            @click="createGame"
+                                            class="md-primary">
+                                        Neues Spiel
                                     </md-button>
                                 </div>
-                            </md-toolbar>
+                                <div class="md-layout-item md-size-15">
+                                    <md-field v-if="playerName.length > 0">
+                                        <label>Wörter</label>
+                                        <md-select class="no-dd-icon" v-model="selectedWordPool">
+                                            <md-option v-for="code in supportedWordPools"
+                                                       :value="code">
+                                                {{getLanguageName(code)}}
+                                            </md-option>
+                                        </md-select>
+                                    </md-field>
+                                </div>
+                            </div>
+
+                            <div class="md-layout md-alignment-center">
+                                <div class="md-layout-item md-size-45">
+                                    <md-field>
+                                        <label>Spiel</label>
+                                        <md-input v-model="gameId" maxlength="6" @keydown="gameIdKeydown($event)">
+                                        </md-input>
+                                    </md-field>
+                                </div>
+                                <div class="md-layout-item md-size-55">
+                                    <md-button v-if="(playerName.length > 0) && (gameId.length===6)"
+                                            @click="join"
+                                            class="md-primary">
+                                        Beitreten
+                                    </md-button>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    <div v-if="hasJoined">
+                        <md-toolbar class="md-primary">
+                            <h3 class="md-title">Spiel {{gameId}} (bis {{timeout}})</h3>
+                        </md-toolbar>
+                        <md-toolbar v-if="isStarted" class="md-transparent" md-elevation="0">
+                            <h3 class="md-title">{{word}}</h3>
+                        </md-toolbar>
+
+                        <md-list>
+                            <md-list-item v-for="player in players"
+                                          :key="player.name">
+                                <md-icon v-if="winners.includes(player.name)" style="color:green">verified</md-icon>
+
+                                <span class="md-list-item-text"
+                                      :class="{eliminated: player.isEliminated && isStarted,
+                                              disconnected: player.isDisconnected}">
+                                    {{player.name}} {{player.name === playerName ? '(Du)' : ''}}
+                                </span>
+
+                                <span v-if="isStarted">[Punkte: {{player.score}}]</span>
+                                <span v-if="winners.length > 0">{{player.word}}</span>
+
+                                <md-button v-if="player.isDisconnected && isAdmin"
+                                           class="md-icon-button md-list-action"
+                                           @click="kick(player)">
+                                    <md-icon class="md-primary md-accent">link_off</md-icon>
+                                </md-button>
+
+                                <md-button v-if="isAdminDisconnected && player.name === playerName"
+                                            class="md-icon-button md-list-action" @click="claim(player)">
+                                    <md-icon class="md-primary md-accent">star</md-icon>
+                                </md-button>
+
+                                <md-button v-if="isAdmin && isStarted && !player.isEliminated"
+                                           class="md-icon-button md-list-action"
+                                           @click="vote(player)">
+                                    <md-icon class="md-primary">eject</md-icon>
+                                </md-button>
+                            </md-list-item>
+                        </md-list>
+
+                        <md-dialog-prompt v-model="guessedWord"
+                                          :md-active.sync="showDialog"
+                                          md-title="Wort raten"
+                                          md-input-placeholder="Wort eingeben..."
+                                          md-cancel-text="Abbrechen"
+                                          md-confirm-text="Ok"
+                                          @md-confirm="guess"/>
+
+                        <md-toolbar v-if="hasJoined && isAdmin" class="md-transparent" md-elevation="0">
+                            <div class="md-toolbar-section-end">
+                                <md-button v-if="isStarted" @click="openGuessDialog" class="md-primary">
+                                    Wort raten
+                                </md-button>
+
+                                <md-button v-if="canStart" @click="start" class="md-accent">
+                                    Neue Runde
+                                </md-button>
+                            </div>
+                        </md-toolbar>
+                    </div>
+                </div>
             `,
             data: function () {
                 return {
@@ -139,7 +174,9 @@
                     winners: [],
                     error: '',
                     guessedWord: '',
-                    showDialog: false
+                    showDialog: false,
+                    supportedWordPools: ['de'],
+                    selectedWordPool: ''
                 }
             },
             computed: {
@@ -160,6 +197,8 @@
             },
             created: function () {
                 this.playerName = window.localStorage.getItem('playerName') || ''
+                const browserLanguage2 = navigator.language.substr(0, 2)
+                this.selectedWordPool = this.supportedWordPools.includes(browserLanguage2) ? browserLanguage2 : 'de'
                 this.gameId = location.hash.substr(1) || ''
                 setInterval(() => {
                     if (socket && (socket.readyState === WebSocket.CLOSED) && this.hasJoined) {
@@ -168,6 +207,9 @@
                 }, 2000)
             },
             methods: {
+                getLanguageName: function(code) {
+                    return {'de': 'Deu', 'en': 'Eng', 'zh': '中文'}[code]
+                },
                 gameIdKeydown: function (event) {
                     if (!(event.metaKey || event.ctrlKey)) {
                         const isNumber = /^[0-9]$/.test(event.key)
