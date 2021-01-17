@@ -32,7 +32,7 @@ describe('game', () => {
             game.join('cindy')
         })
 
-        it('will show a different word to bob on start if he is the imposer', () => {
+        it('will show a different word to bob on start if he is the impostor', () => {
             const INDEX_BOB = 1
             randomIndexProvider.get = () => INDEX_BOB
             randomWordPairProvider.get = () => ['word1', 'word2']

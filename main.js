@@ -63,6 +63,7 @@ app.ws('/games/:id', function (ws, req) {
     const update = function () {
         const players = game.players.map((player, index) => ({
             name: player.name,
+            word: (game.winners.length > 0) ? player.word : '???',
             isAdmin: (index === 0),
             isEliminated: player.isEliminated,
             score: player.score,

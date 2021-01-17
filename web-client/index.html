@@ -28,9 +28,6 @@
     </div>
 
     <script>
-        // TODO improve UX & simplify screens:
-        //      1. color the winners instead of a separate UI section
-        //      2. show the word next to player, other players have '???', gets revealed when round is over
         // TODO add a little help (where to place the button?)
         // TODO how should we deal with categories - right now causes trouble for guessing
         //      either remove the information from the words, and pick words that are unambigious
@@ -45,14 +42,13 @@
         new Vue({
             el: '#app',
             template: `
-                <md-app>
-                    <md-app-content>
-                        <form v-if="!hasJoined">
-                            <md-toolbar class="md-primary">
-                                <h3 class="md-title">Der Doppelagent</h3>
-                            </md-toolbar>                            
-                            <md-toolbar v-if="this.errorMessage" class="md-accent">{{this.errorMessage}}</md-toolbar>
-
+                <div>
+                    <md-toolbar v-if="this.errorMessage" class="md-accent">{{this.errorMessage}}</md-toolbar>
+                    <div v-if="!hasJoined">
+                        <md-toolbar class="md-primary">
+                            <h3 class="md-title">Der Doppelagent</h3>
+                        </md-toolbar>
+                        <form style="padding:16px">
                             <md-field>
                                 <label>Dein Name</label>
                                 <md-input v-model="playerName" maxlength="16" required></md-input>
@@ -69,35 +65,40 @@
                                            class="md-raised md-primary">Beitreten</md-button>
                             </md-field>
                         </form>
-
+                    </div>
                         <div v-if="hasJoined">
                             <md-toolbar class="md-primary">
                                 <h3 class="md-title">Spiel {{gameId}} (bis {{timeout}})</h3>
                             </md-toolbar>
-                            <md-toolbar v-if="winners.length > 0" class="md-accent" style="background: green">
-                                <h3 class="md-title">Gewinner: {{winners.join(', ')}}</h3>
-                            </md-toolbar>
                             <md-toolbar v-if="isStarted" class="md-transparent" md-elevation="0">
-                                <h3 class="md-title">Wort: {{word}}</h3>
+                                <h3 class="md-title">{{word}}</h3>
                             </md-toolbar>
 
                             <md-list>
                                 <md-list-item v-for="player in players"
-                                                :key="player.name">
+                                              :key="player.name">
+                                    <md-icon v-if="winners.includes(player.name)" style="color:green">verified</md-icon>
+                                    
                                     <span class="md-list-item-text" 
                                             :class="{eliminated: player.isEliminated && isStarted, 
                                                     disconnected: player.isDisconnected}">
-                                        {{player.name}} {{player.name === playerName ? '(Du)' : ''}} [Punkte: {{player.score}}]
+                                        {{player.name}} {{player.name === playerName ? '(Du)' : ''}}
                                     </span>
+
+                                    <span v-if="isStarted">[Punkte: {{player.score}}]</span>
+                                    <span v-if="winners.length > 0">{{player.word}}</span>
+
                                     <md-button v-if="player.isDisconnected && isAdmin"
                                                 class="md-icon-button md-list-action"
                                                 @click="kick(player)">
                                         <md-icon class="md-primary md-accent">link_off</md-icon>
                                     </md-button>
+
                                     <md-button v-if="isAdminDisconnected && player.name === playerName"
                                                 class="md-icon-button md-list-action" @click="claim(player)">
                                         <md-icon class="md-primary md-accent">star</md-icon>
                                     </md-button>
+
                                     <md-button v-if="isAdmin && isStarted && !player.isEliminated"
                                                 class="md-icon-button md-list-action"
                                                 @click="vote(player)">
@@ -126,8 +127,7 @@
                                 </div>
                             </md-toolbar>
                         </div>
-                    </md-app-content>
-                </md-app>
+                    </div>
             `,
             data: function () {
                 return {
