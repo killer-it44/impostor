@@ -26,7 +26,7 @@ const Game = function (randomIndexProvider, randomWordPairProvider) {
             player.word = player.isImpostor ? word2 : word1
         })
         this.commonWord = word1
-        fuse = new Fuse([word1, word2], { includeScore: true, threshold: 0.25 })
+        fuse = new Fuse([word1.split('(')[0], word2.split('(')[0]], { includeScore: true, threshold: 0.25 })
         this.winners = []
         this.isStarted = true
     }
@@ -48,9 +48,9 @@ const Game = function (randomIndexProvider, randomWordPairProvider) {
     }
 
     this.guessWord = (word) => {
-        const searchResults = fuse.search(word)
+        const searchResults = fuse.search(word.split('(')[0])
         if (searchResults.length === 1) {
-            if (searchResults[0].item === this.commonWord) {
+            if (searchResults[0].item === this.commonWord.split('(')[0]) {
                 impostorWins()
             }
         } else if (searchResults.length === 2) {
