@@ -36,11 +36,12 @@ const endGame = function (id) {
     console.log(`${wsInstance.getWss().clients.size} clients remaining`)
 }
 
+app.post('/games', express.json())
 app.post('/games', function (req, res) {
     let gameId
     do { gameId = randomIndexProvider.get(1000000).toString().padStart(6, '0') } while (games[gameId])
 
-    games[gameId] = new GameFactory().create()
+    games[gameId] = new GameFactory().create(req.body.language)
     clients[gameId] = {}
     const sixHours = 1000 * 60 * 60 * 6
     setTimeout(() => endGame(gameId), sixHours)
