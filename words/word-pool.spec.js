@@ -16,4 +16,11 @@ describe('word pool', () => {
         expect(size).toBeInstanceOf(Number)
         expect(size).toBeGreaterThan(0)
     })
+
+    it('can be queried for the available languages', () => {
+        const wordPool = new WordPool()
+        const supportedLanguages = wordPool.getSupportedLanguages()
+        expect(supportedLanguages).toBeInstanceOf(Object)
+        expect(supportedLanguages['en']).toBe('English')
+    })
 })

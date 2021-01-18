@@ -1,19 +1,15 @@
 'use strict'
 
-const words = {
-    'de': require('./words-de'),
-    'en': require('./words-en'),
-    'zh': require('./words-zh')
-}
+const AvailableTextsLoader = require('../available-texts-loader')
+
+const pools = new AvailableTextsLoader().load('words/pools')
+const supportedLanguages = {}
+Object.keys(pools).forEach(lang => supportedLanguages[pools[lang].code] = pools[lang].nativeName);
 
 const WordPool = function () {
-    this.getCollection = (index, language) => {
-        return [...words[language][index]]
-    }
-
-    this.getSize = (language) => {
-        return words[language].length
-    }
+    this.getCollection = (index, language) => [...pools[language].words[index]]
+    this.getSize = language => pools[language].words.length
+    this.getSupportedLanguages = () => supportedLanguages
 }
 
 module.exports = WordPool

@@ -1,28 +1,32 @@
 'use strict'
 
+// TODO the word "pool" is ambigious as it is used for the word pools but also by the random index provider
+// TODO add http/ws integration test
+// TODO split out separate routers for UI and Game
 const RandomIndexProvider = require('./random-index/random-index-provider')
 const GameFactory = require('./game/game-factory')
 const express = require('express')
 const expressWs = require('express-ws')
-const AvailableTextsLoader = require('./web-client/available-texts-loader')
+const AvailableTextsLoader = require('./available-texts-loader')
 const UiTexts = require('./web-client/ui-texts')
-
-const uiTexts = new UiTexts(new AvailableTextsLoader().load())
+const WordPool = require('./words/word-pool')
 
 const app = express()
 const wsInstance = expressWs(app)
-const randomIndexProvider = new RandomIndexProvider()
-const games = {}
-const clients = {}
-const timeouts = {}
-const dummyClient = { send: () => null }
 
+const uiTexts = new UiTexts(new AvailableTextsLoader().load('web-client/static-content/ui-texts'))
 app.use(express.static('web-client/static-content'))
-
 app.get('/ui-texts.json', async (req, res) => {
     const acceptedLanguages = req.header('accept-language').split(',').map(lang => lang.split(';')[0])
     res.json(uiTexts.loadMergedTexts(acceptedLanguages))
 })
+
+const randomIndexProvider = new RandomIndexProvider()
+const wordPool = new WordPool()
+const games = {}
+const clients = {}
+const timeouts = {}
+const dummyClient = { send: () => null }
 
 const filterActivePlayers = (gameClients) => Object.values(gameClients).filter((c) => c !== dummyClient)
 const filterInactivePlayers = (gameClients) => Object.values(gameClients).filter((c) => c === dummyClient)
@@ -45,11 +49,15 @@ const endGame = function (id) {
     console.log(`${wsInstance.getWss().clients.size} clients remaining`)
 }
 
+app.get('/supported-word-pool-languages', async (req, res) => {
+    res.json(wordPool.getSupportedLanguages())
+})
+
 app.post('/games', express.json(), function (req, res) {
     let gameId
     do { gameId = randomIndexProvider.get(1000000).toString().padStart(6, '0') } while (games[gameId])
 
-    games[gameId] = new GameFactory().create(req.body.language)
+    games[gameId] = new GameFactory().create(wordPool, req.body.language)
     clients[gameId] = {}
     const sixHours = 1000 * 60 * 60 * 6
     setTimeout(() => endGame(gameId), sixHours)

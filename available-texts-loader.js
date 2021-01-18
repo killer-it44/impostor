@@ -2,10 +2,8 @@
 
 const fs = require('fs')
 
-const textsDir = 'web-client/static-content/ui-texts'
-
 const AvailableTextsLoader = function() {
-    this.load = function() {
+    this.load = function(textsDir) {
         const availableTexts = {}
         
         const availableLanguageFiles = fs.readdirSync(textsDir)
