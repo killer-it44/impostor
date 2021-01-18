@@ -33,7 +33,6 @@
     </div>
 
     <script>
-        // TODO supported word pools should come from the server and be detected automatically based on available files
         Vue.use(VueMaterial.default)
 
         const protocol = (window.location.protocol === 'https:') ? 'wss' : 'ws'
@@ -57,27 +56,7 @@
                             </md-field>
                             <div v-if="playerName.length > 0">
                                 <md-card md-with-hover>
-                                    <md-card-header class="md-title">Neues Spiel erstellen</md-card-header>
-                                    <md-card-content class="padding-bottom-0">
-                                        <md-field v-if="playerName.length > 0" >
-                                            <label>Wörter</label>
-                                            <md-select v-model="selectedWordPool">
-                                                <md-option v-for="code in supportedWordPools"
-                                                        :value="code">
-                                                    {{languageNames[code]}}
-                                                </md-option>
-                                            </md-select>
-                                        </md-field>
-                                    </md-card-content>
-                                    <md-card-actions>
-                                        <md-button v-if="playerName.length > 0" @click="createGame" class="md-primary">
-                                            Erstellen
-                                        </md-button>
-                                    </md-card-actions>
-                                </md-card>
-                                <p/>
-                                <md-card md-with-hover>
-                                    <md-card-header class="md-title">...oder Spiel beitreten</md-card-header>
+                                    <md-card-header class="md-title">Spiel beitreten</md-card-header>
                                     <md-card-content class="padding-bottom-0">
                                         <md-field>
                                             <label>Spiel</label>
@@ -90,6 +69,29 @@
                                                 @click="join"
                                                 class="md-primary">
                                             Beitreten
+                                        </md-button>
+                                    </md-card-actions>
+                                </md-card>
+
+                                <p/>
+
+                                <md-card md-with-hover>
+                                    <md-card-header class="md-title">Neues Spiel erstellen</md-card-header>
+                                    <md-card-content class="padding-bottom-0">
+                                        <md-field v-if="playerName.length > 0" >
+                                            <label>Sprache der Wörter</label>
+                                            <md-select v-model="selectedWordPool">
+                                                <md-option v-for="lang in Object.keys(supportedWordPools)"
+                                                        :value="lang"
+                                                        :key="lang">
+                                                    {{supportedWordPools[lang]}}
+                                                </md-option>
+                                            </md-select>
+                                        </md-field>
+                                    </md-card-content>
+                                    <md-card-actions>
+                                        <md-button v-if="playerName.length > 0" @click="createGame" class="md-primary">
+                                            Erstellen
                                         </md-button>
                                     </md-card-actions>
                                 </md-card>
@@ -174,8 +176,7 @@
                     error: '',
                     guessedWord: '',
                     showDialog: false,
-                    supportedWordPools: ['de', 'en', 'zh'],
-                    languageNames: { 'de': 'Deutsch', 'en': 'Englisch', 'zh': '中文' },
+                    supportedWordPools: [],
                     selectedWordPool: '',
                     texts: {}
                 }
@@ -200,8 +201,11 @@
                 this.playerName = window.localStorage.getItem('playerName') || ''
                 this.gameId = location.hash.substr(1) || ''
                 this.texts = await fetch('/ui-texts.json').then(res => res.json())
-                const shortLangs = navigator.languages.map((l) => l.substr(0, 2))
-                this.selectedWordPool = shortLangs.find((l) => this.supportedWordPools.includes(l)) || 'en'
+                this.supportedWordPools = await fetch('/supported-word-pool-languages').then(res => res.json())
+                const preferredLangsShort = navigator.languages.map((l) => l.substr(0, 2))
+                const preferredWordPool = preferredLangsShort.find((l) => this.supportedWordPools[l])
+                this.selectedWordPool = preferredWordPool || Object.keys(this.supportedWordPools)[0]
+
                 setInterval(() => {
                     if (socket && (socket.readyState === WebSocket.CLOSED) && this.hasJoined) this.join()
                 }, 2000)
