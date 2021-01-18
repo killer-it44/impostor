@@ -4,7 +4,7 @@
   "description": "A little game with words",
   "scripts": {
     "start": "node main.js",
-    "test": "jasmine **/*.spec.js"
+    "test": "nyc jasmine **/*.spec.js"
   },
   "keywords": [
     "game"
@@ -14,7 +14,10 @@
   "dependencies": {
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
-    "fuse.js": "^6.4.6",
-    "jasmine": "^3.6.3"
+    "fuse.js": "^6.4.6"
+  },
+  "devDependencies": {
+    "jasmine": "^3.6.3",
+    "nyc": "^15.1.0"
   }
 }
