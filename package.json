@@ -4,7 +4,8 @@
   "description": "A little game with words",
   "scripts": {
     "start": "node main.js",
-    "test": "nyc jasmine **/*.spec.js"
+    "test": "jasmine **/*.spec.js",
+    "test:coverage": "nyc jasmine **/*.spec.js"
   },
   "keywords": [
     "game"
