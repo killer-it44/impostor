@@ -1,0 +1,22 @@
+{
+    "app-title": "Doppelagent",
+    "player-name-input-label": "Dein Name",
+    "join-game-title": "Spiel Beitreten",
+    "game-id-input-label": "Spielnummer",
+    "join-game-button": "Beitreten",
+    "create-game-title": "Neues Spiel Erstellen",
+    "selected-word-pool-language-label": "Sprache der Wörter",
+    "create-game-button": "Erstellen",
+    "game-id-and-timeout-title": "Spiel $0 (bis $1)",
+    "you": "Du",
+    "player-score": "Punkte: $0",
+    "guess-word-dialog-title": "Wort Raten",
+    "guess-word-dialog-input-placeholder": "Wort eingeben...",
+    "cancel-buttton": "Abbrechen",
+    "ok-buttton": "Ok",
+    "guess-word-buttton": "Wort Raten",
+    "new-round-buttton": "Neue Runde",
+    "general-connection-error-message": "Allgemeiner Verbindungsfehler",
+    "game-not-found-or-ended-error-message": "Spiel nicht gefunden oder beendet",
+    "unknown-error-message": "Unerwarteter Fehler: $0"
+}
