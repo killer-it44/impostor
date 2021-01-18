@@ -19,11 +19,11 @@
         }
 
         .disconnected {
-            color: darkgray
+            color: darkgray;
         }
 
-        .no-dd-icon i {
-            display: none
+        .padding-bottom-0 {
+            padding-bottom: 0px;
         }
     </style>
 </head>
@@ -33,7 +33,6 @@
     </div>
 
     <script>
-        // TODO try card layout: name goes top w/o card, then card for creating new game, then card for joining
         // TODO supported word pools should come from the server and be detected automatically based on available files
         Vue.use(VueMaterial.default)
 
@@ -46,53 +45,54 @@
             template: `
                 <div>
                     <md-toolbar v-if="this.errorMessage" class="md-accent">{{this.errorMessage}}</md-toolbar>
+                    
                     <div v-if="!hasJoined">
                         <md-toolbar class="md-primary">
                             <h3 class="md-title">{{texts['title']}}</h3>
                         </md-toolbar>
                         <div style="padding:16px">
-                            <div class="md-layout md-alignment-center">
-                                <div class="md-layout-item md-size-45">
-                                    <md-field>
-                                        <label>Dein Name</label>
-                                        <md-input v-model="playerName" maxlength="16" required></md-input>
-                                    </md-field>
-                                </div>
-                                <div class="md-layout-item md-size-40">
-                                    <md-button v-if="playerName.length > 0"
-                                            @click="createGame"
-                                            class="md-primary">
-                                        Neues Spiel
-                                    </md-button>
-                                </div>
-                                <div class="md-layout-item md-size-15">
-                                    <md-field v-if="playerName.length > 0">
-                                        <label>Wörter</label>
-                                        <md-select class="no-dd-icon" v-model="selectedWordPool">
-                                            <md-option v-for="code in supportedWordPools"
-                                                       :value="code">
-                                                {{languageNames[code]}}
-                                            </md-option>
-                                        </md-select>
-                                    </md-field>
-                                </div>
-                            </div>
-
-                            <div class="md-layout md-alignment-center">
-                                <div class="md-layout-item md-size-45">
-                                    <md-field>
-                                        <label>Spiel</label>
-                                        <md-input v-model="gameId" maxlength="6" @keydown="gameIdKeydown($event)">
-                                        </md-input>
-                                    </md-field>
-                                </div>
-                                <div class="md-layout-item md-size-55">
-                                    <md-button v-if="(playerName.length > 0) && (gameId.length===6)"
-                                            @click="join"
-                                            class="md-primary">
-                                        Beitreten
-                                    </md-button>
-                                </div>
+                            <md-field>
+                                <label>Dein Name</label>
+                                <md-input v-model="playerName" maxlength="16" required></md-input>
+                            </md-field>
+                            <div v-if="playerName.length > 0">
+                                <md-card md-with-hover>
+                                    <md-card-header class="md-title">Neues Spiel erstellen</md-card-header>
+                                    <md-card-content class="padding-bottom-0">
+                                        <md-field v-if="playerName.length > 0" >
+                                            <label>Wörter</label>
+                                            <md-select v-model="selectedWordPool">
+                                                <md-option v-for="code in supportedWordPools"
+                                                        :value="code">
+                                                    {{languageNames[code]}}
+                                                </md-option>
+                                            </md-select>
+                                        </md-field>
+                                    </md-card-content>
+                                    <md-card-actions>
+                                        <md-button v-if="playerName.length > 0" @click="createGame" class="md-primary">
+                                            Erstellen
+                                        </md-button>
+                                    </md-card-actions>
+                                </md-card>
+                                <p/>
+                                <md-card md-with-hover>
+                                    <md-card-header class="md-title">...oder Spiel beitreten</md-card-header>
+                                    <md-card-content class="padding-bottom-0">
+                                        <md-field>
+                                            <label>Spiel</label>
+                                            <md-input v-model="gameId" maxlength="6" @keydown="gameIdKeydown($event)">
+                                            </md-input>
+                                        </md-field>                                    
+                                    </md-card-content>
+                                    <md-card-actions>
+                                        <md-button :disabled="gameId.length < 6"
+                                                @click="join"
+                                                class="md-primary">
+                                            Beitreten
+                                        </md-button>
+                                    </md-card-actions>
+                                </md-card>
                             </div>
                         </div>
                     </div>
@@ -175,7 +175,7 @@
                     guessedWord: '',
                     showDialog: false,
                     supportedWordPools: ['de', 'en', 'zh'],
-                    languageNames: { 'de': 'Deu', 'en': 'Eng', 'zh': '中文' },
+                    languageNames: { 'de': 'Deutsch', 'en': 'Englisch', 'zh': '中文' },
                     selectedWordPool: '',
                     texts: {}
                 }
