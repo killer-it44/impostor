@@ -47,28 +47,27 @@
                     
                     <div v-if="!hasJoined">
                         <md-toolbar class="md-primary">
-                            <h3 class="md-title">{{texts['title']}}</h3>
+                            <h3 class="md-title">{{text('app-title')}}</h3>
                         </md-toolbar>
                         <div style="padding:16px">
                             <md-field>
-                                <label>Dein Name</label>
+                                <label>{{text('player-name-input-label')}}</label>
                                 <md-input v-model="playerName" maxlength="16" required></md-input>
                             </md-field>
                             <div v-if="playerName.length > 0">
                                 <md-card md-with-hover>
-                                    <md-card-header class="md-title">Spiel beitreten</md-card-header>
+                                    <md-card-header class="md-title">{{text('join-game-title')}}</md-card-header>
                                     <md-card-content class="padding-bottom-0">
                                         <md-field>
-                                            <label>Spiel</label>
-                                            <md-input v-model="gameId" maxlength="6" @keydown="gameIdKeydown($event)">
-                                            </md-input>
+                                            <label>{{text('game-id-input-label')}}</label>
+                                            <md-input v-model="gameId" maxlength="6" @keydown="gameIdKeydown($event)"/>
                                         </md-field>                                    
                                     </md-card-content>
                                     <md-card-actions>
                                         <md-button :disabled="gameId.length < 6"
                                                 @click="join"
                                                 class="md-primary">
-                                            Beitreten
+                                            {{text('join-game-button')}}
                                         </md-button>
                                     </md-card-actions>
                                 </md-card>
@@ -76,10 +75,10 @@
                                 <p/>
 
                                 <md-card md-with-hover>
-                                    <md-card-header class="md-title">Neues Spiel erstellen</md-card-header>
+                                    <md-card-header class="md-title">{{text('create-game-title')}}</md-card-header>
                                     <md-card-content class="padding-bottom-0">
                                         <md-field v-if="playerName.length > 0" >
-                                            <label>Sprache der Wörter</label>
+                                            <label>{{text('selected-word-pool-language-label')}}</label>
                                             <md-select v-model="selectedWordPool">
                                                 <md-option v-for="lang in Object.keys(supportedWordPools)"
                                                         :value="lang"
@@ -91,7 +90,7 @@
                                     </md-card-content>
                                     <md-card-actions>
                                         <md-button v-if="playerName.length > 0" @click="createGame" class="md-primary">
-                                            Erstellen
+                                            {{text('create-game-button')}}
                                         </md-button>
                                     </md-card-actions>
                                 </md-card>
@@ -101,7 +100,7 @@
 
                     <div v-if="hasJoined">
                         <md-toolbar class="md-primary">
-                            <h3 class="md-title">Spiel {{gameId}} (bis {{timeout}})</h3>
+                            <h3 class="md-title">{{text('game-id-and-timeout-title', gameId, timeout)}}</h3>
                         </md-toolbar>
                         <md-toolbar v-if="isStarted" class="md-transparent" md-elevation="0">
                             <h3 class="md-title">{{word}}</h3>
@@ -115,10 +114,10 @@
                                 <span class="md-list-item-text"
                                       :class="{eliminated: player.isEliminated && isStarted,
                                               disconnected: player.isDisconnected}">
-                                    {{player.name}} {{player.name === playerName ? '(Du)' : ''}}
+                                    {{player.name}} {{player.name === playerName ? '(' + text('you') + ')' : ''}}
                                 </span>
 
-                                <span v-if="isStarted">[Punkte: {{player.score}}]</span>
+                                <span v-if="isStarted">[{{text('player-score', player.score)}}]</span>
                                 <span v-if="winners.length > 0">{{player.word}}</span>
 
                                 <md-button v-if="player.isDisconnected && isAdmin"
@@ -142,20 +141,20 @@
 
                         <md-dialog-prompt v-model="guessedWord"
                                           :md-active.sync="showDialog"
-                                          md-title="Wort raten"
-                                          md-input-placeholder="Wort eingeben..."
-                                          md-cancel-text="Abbrechen"
-                                          md-confirm-text="Ok"
+                                          :md-title="text('guess-word-dialog-title')"
+                                          :md-input-placeholder="text('guess-word-dialog-input-placeholder')"
+                                          :md-cancel-text="text('cancel-button')"
+                                          :md-confirm-text="text('ok-button')"
                                           @md-confirm="guess"/>
 
                         <md-toolbar v-if="hasJoined && isAdmin" class="md-transparent" md-elevation="0">
                             <div class="md-toolbar-section-end">
                                 <md-button v-if="isStarted" @click="openGuessDialog" class="md-primary">
-                                    Wort raten
+                                    {{text('guess-word-buttton')}}
                                 </md-button>
 
                                 <md-button v-if="canStart" @click="start" class="md-accent">
-                                    Neue Runde
+                                    {{text('new-round-buttton')}}
                                 </md-button>
                             </div>
                         </md-toolbar>
@@ -191,9 +190,9 @@
                 errorMessage: function () {
                     switch (this.error) {
                         case '': return ''
-                        case 'general-socket-error': return 'Allgemeiner Verbindungsfehler'
-                        case 'game-not-existing': return 'Spiel nicht gefunden oder beendet'
-                        default: return `Unbekannte Fehlernachricht: ${this.error}`
+                        case 'general-socket-error': return this.text('general-connection-error-message')
+                        case 'game-not-existing': return this.text('game-not-found-or-ended-error-message')
+                        default: return this.text('unknown-error-message', this.error)
                     }
                 }
             },
@@ -211,6 +210,13 @@
                 }, 2000)
             },
             methods: {
+                text: function(key, ...args) {
+                    const t = args.reduce((text, arg, index) => {
+                        return text.replace(`$${index}`, arg)
+                    }, this.texts[key])
+                    console.log(t)
+                    return t
+                },
                 gameIdKeydown: function (event) {
                     if (!(event.metaKey || event.ctrlKey)) {
                         const isNumber = /^[0-9]$/.test(event.key)
