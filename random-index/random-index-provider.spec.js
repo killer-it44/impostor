@@ -9,6 +9,10 @@ describe('random index provider', () => {
         randomIndexProvider = new RandomIndexProvider()
     })
 
+    it('throws an error if the pool size is 0 or less', () => {
+        expect(() => randomIndexProvider.get(0)).toThrowError(/expected.*value/u)
+    })
+
     it('returns 0 if the pool size is 1', () => {
         const index = randomIndexProvider.get(1)
         expect(index).toBe(0)
