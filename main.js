@@ -4,16 +4,25 @@ const RandomIndexProvider = require('./random-index/random-index-provider')
 const GameFactory = require('./game/game-factory')
 const express = require('express')
 const expressWs = require('express-ws')
+const AvailableTextsLoader = require('./web-client/available-texts-loader')
+const UiTexts = require('./web-client/ui-texts')
+
+const uiTexts = new UiTexts(new AvailableTextsLoader().load())
+
 const app = express()
 const wsInstance = expressWs(app)
-
 const randomIndexProvider = new RandomIndexProvider()
 const games = {}
 const clients = {}
 const timeouts = {}
 const dummyClient = { send: () => null }
 
-app.use(express.static('web-client'))
+app.use(express.static('web-client/static-content'))
+
+app.get('/ui-texts.json', async (req, res) => {
+    const acceptedLanguages = req.header('accept-language').split(',').map(lang => lang.split(';')[0])
+    res.json(uiTexts.loadMergedTexts(acceptedLanguages))
+})
 
 const filterActivePlayers = (gameClients) => Object.values(gameClients).filter((c) => c !== dummyClient)
 const filterInactivePlayers = (gameClients) => Object.values(gameClients).filter((c) => c === dummyClient)
@@ -36,8 +45,7 @@ const endGame = function (id) {
     console.log(`${wsInstance.getWss().clients.size} clients remaining`)
 }
 
-app.post('/games', express.json())
-app.post('/games', function (req, res) {
+app.post('/games', express.json(), function (req, res) {
     let gameId
     do { gameId = randomIndexProvider.get(1000000).toString().padStart(6, '0') } while (games[gameId])
 

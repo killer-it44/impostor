@@ -196,37 +196,17 @@
                     }
                 }
             },
-            created: function () {
+            created: async function () {
                 this.playerName = window.localStorage.getItem('playerName') || ''
                 this.gameId = location.hash.substr(1) || ''
-                this.loadLanguages()
+                this.texts = await fetch('/ui-texts.json').then(res => res.json())
+                const shortLangs = navigator.languages.map((l) => l.substr(0, 2))
+                this.selectedWordPool = shortLangs.find((l) => this.supportedWordPools.includes(l)) || 'en'
                 setInterval(() => {
                     if (socket && (socket.readyState === WebSocket.CLOSED) && this.hasJoined) this.join()
                 }, 2000)
             },
             methods: {
-                loadLanguages: function () {
-                    const languages = [...navigator.languages]
-                    const subLangs = languages.filter((l) => l.length > 2)
-                    subLangs.forEach((sl) => {
-                        const mainLang = sl.substr(0, 2)
-                        if (!languages.includes(mainLang)) {
-                            languages.splice(languages.indexOf(sl) + 1, 0, mainLang)
-                        }
-                    })
-                    if (!languages.includes('en')) languages.push('en')
-                    
-                    let sequence = Promise.resolve()
-                    languages.forEach((language) => {
-                        sequence = sequence
-                            .then(() => fetch(`${language}.json`))
-                            .then((res) => res.ok ? res.json() : {})
-                            .then((json) => this.texts = { ...json, ...this.texts })
-
-                        const l2 = language.substr(0, 2)
-                        if (this.supportedWordPools.includes(l2) && !this.selectedWordPool) this.selectedWordPool = l2
-                    })
-                },
                 gameIdKeydown: function (event) {
                     if (!(event.metaKey || event.ctrlKey)) {
                         const isNumber = /^[0-9]$/.test(event.key)
