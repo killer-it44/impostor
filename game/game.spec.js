@@ -47,13 +47,13 @@ describe('game', () => {
         describe('started with alice being the impostor (=having the different word)', () => {
             beforeEach(() => {
                 randomIndexProvider.get = () => 0
-                randomWordPairProvider.get = () => ['word1', 'word2']
+                randomWordPairProvider.get = () => ['chess', 'checkers']
                 game.start()
                 expect(game.winners).toEqual([])
             })
 
             it('will end when common word is guessed correctly - alice wins, gets 2 points (=size of group)', () => {
-                game.guessWord('word1')
+                game.guessWord('chess')
                 expect(game.winners).toEqual(['alice'])
                 expect(game.players[0].score).toBe(2)
                 expect(game.players[1].score).toBe(0)
@@ -61,7 +61,7 @@ describe('game', () => {
             })
 
             it('will continue when common word is not guessed correctly', () => {
-                game.guessWord('word2')
+                game.guessWord('checkers')
                 expect(game.winners).toEqual([])
             })
 
@@ -113,13 +113,13 @@ describe('game', () => {
             })
 
             it('will check if closer to the common word if the guess is close to both', () => {
-                randomWordPairProvider.get = () => ['Word1', 'Word2']
+                randomWordPairProvider.get = () => ['principal', 'principle']
                 game.start()
-                game.guessWord('word3')
+                game.guessWord('principle')
                 expect(game.winners).toEqual([])
-                game.guessWord('word2')
+                game.guessWord('principl')
                 expect(game.winners).toEqual([])
-                game.guessWord('word1')
+                game.guessWord('prinzipal')
                 expect(game.winners).not.toEqual([])
             })
 
@@ -134,6 +134,22 @@ describe('game', () => {
                 game.guessWord('checkers (game)')
                 expect(game.winners).not.toEqual([])
             })
+        })
+    })
+
+    describe('with 4 players (alice, bob, cindy and dave), started with alice being the impostor', () => {
+        beforeEach(() => {
+            randomIndexProvider.get = () => 0
+            game.join('alice')
+            game.join('bob')
+            game.join('cindy')
+            game.join('dave')
+            game.start()
+        })
+
+        it('will continue when bob gets voted out', () => {
+            game.voteImpostor('bob')
+            expect(game.winners).toEqual([])
         })
     })
 
