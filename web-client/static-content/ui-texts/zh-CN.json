@@ -1,0 +1,22 @@
+{
+    "app-title": "伪装者",
+    "player-name-input-label": "你的名字",
+    "join-game-title": "加入游戏",
+    "game-id-input-label": "游戏编号",
+    "join-game-button": "加入",
+    "create-game-title": "创建新游戏",
+    "selected-word-pool-language-label": "词库语言",
+    "create-game-button": "创建",
+    "game-id-and-timeout-title": "游戏 $0 (到 $1)",
+    "you": "你",
+    "player-score": "分数: $0",
+    "guess-word-dialog-title": "猜词",
+    "guess-word-dialog-input-placeholder": "输入词",
+    "cancel-buttton": "取消",
+    "ok-buttton": "确认",
+    "guess-word-buttton": "猜词",
+    "new-round-buttton": "新一局",
+    "general-connection-error-message": "连接错误",
+    "game-not-found-or-ended-error-message": "未找到游戏或游戏已结束",
+    "unknown-error-message": "未知错误 $0"
+}
