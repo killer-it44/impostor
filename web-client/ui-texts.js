@@ -26,7 +26,7 @@ const UiTexts = function (availableTexts) {
     this.loadMergedTexts = function (acceptedLanguagesInOrder) {
         const languages = [...acceptedLanguagesInOrder]
         addGeneralLanguagesIfNotExisting(languages)
-        if (!languages.includes('en')) languages.push('en')
+        if (!languages.includes('de')) languages.push('de')
         return mergeTextsForLanguages(languages)
     }
 }
