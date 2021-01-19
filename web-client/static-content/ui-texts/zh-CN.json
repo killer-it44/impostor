@@ -12,11 +12,11 @@
     "player-score": "分数: $0",
     "guess-word-dialog-title": "猜词",
     "guess-word-dialog-input-placeholder": "输入词",
-    "cancel-buttton": "取消",
-    "ok-buttton": "确认",
-    "guess-word-buttton": "猜词",
-    "new-round-buttton": "新一局",
-    "general-connection-error-message": "连接错误",
-    "game-not-found-or-ended-error-message": "未找到游戏或游戏已结束",
-    "unknown-error-message": "未知错误 $0"
+    "cancel-button": "取消",
+    "ok-button": "确认",
+    "guess-word-button": "猜词",
+    "new-round-button": "新一局",
+    "general-connection-error-message": "连接错误。",
+    "game-not-found-or-ended-error-message": "未找到游戏或游戏已结束。",
+    "unknown-error-message": "未知错误 $0。"
 }
