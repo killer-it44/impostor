@@ -86,15 +86,20 @@ app.ws('/games/:id', function (ws, req) {
             score: player.score,
             isDisconnected: gameClients[player.name] === dummyClient
         }))
-        game.players.forEach((player, index) => {
-            gameClients[player.name].send(JSON.stringify({
-                timeout: timeouts[gameId],
-                players: players,
-                isStarted: game.isStarted,
-                canStart: game.canStart(),
-                word: player.word,
-                winners: game.winners,
-            }))
+        game.players.forEach((player) => {
+            try {
+                gameClients[player.name].send(JSON.stringify({
+                    timeout: timeouts[gameId],
+                    players: players,
+                    isStarted: game.isStarted,
+                    canStart: game.canStart(),
+                    word: player.word,
+                    winners: game.winners,
+                }))
+            } catch (error) {
+                console.error(`[${gameId} sending update failed for player ${player.name}]`)
+                console.error(error)
+            }
         })
     }
 

@@ -25,6 +25,7 @@
         .padding-bottom-0 {
             padding-bottom: 0px;
         }
+
     </style>
 </head>
 
@@ -210,12 +211,11 @@
                 }, 2000)
             },
             methods: {
-                text: function(key, ...args) {
-                    const t = args.reduce((text, arg, index) => {
-                        return text.replace(`$${index}`, arg)
-                    }, this.texts[key])
-                    console.log(t)
-                    return t
+                text: function (key, ...args) {
+                    return args.reduce(
+                        (text, arg, index) => text.replace(`$${index}`, arg),
+                        this.texts[key]
+                    )
                 },
                 gameIdKeydown: function (event) {
                     if (!(event.metaKey || event.ctrlKey)) {
