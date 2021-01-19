@@ -12,11 +12,11 @@
     "player-score": "Punkte: $0",
     "guess-word-dialog-title": "Wort Raten",
     "guess-word-dialog-input-placeholder": "Wort eingeben",
-    "cancel-buttton": "Abbrechen",
-    "ok-buttton": "Ok",
-    "guess-word-buttton": "Wort Raten",
-    "new-round-buttton": "Neue Runde",
-    "general-connection-error-message": "Allgemeiner Verbindungsfehler",
-    "game-not-found-or-ended-error-message": "Spiel nicht gefunden oder beendet",
-    "unknown-error-message": "Unbekannter Fehler: $0"
+    "cancel-button": "Abbrechen",
+    "ok-button": "Ok",
+    "guess-word-button": "Wort Raten",
+    "new-round-button": "Neue Runde",
+    "general-connection-error-message": "Allgemeiner Verbindungsfehler.",
+    "game-not-found-or-ended-error-message": "Spiel nicht gefunden oder beendet.",
+    "unknown-error-message": "Unbekannter Fehler: $0."
 }
